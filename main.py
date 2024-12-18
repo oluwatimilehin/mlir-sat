@@ -35,7 +35,7 @@ def context() -> MLContext:
 
 if __name__ == "__main__":
     path = Path(
-        "bench/3mm_small.mlir"
+        "bench/2mm_small.mlir"
     )  # todo: make this a command line argument/more generic
     with open(path) as f:
         parser = IRParser(context(), f.read(), name=f"{path}")
@@ -47,11 +47,14 @@ if __name__ == "__main__":
         egglog_region = Converter.to_egglog(module_op)
 
         egraph = EGraph(save_egglog_string=True)
-        egraph.register(egglog_region)
+        # egraph.register(egglog_region)
 
         egraph.run(1)
-        print(egraph.display())
-        print(egraph.as_egglog_string)
+        # print(egraph.display())
+        # print(egraph.as_egglog_string)
+
+        extracted = egraph.extract(egglog_region)
+        print(extracted)
 
 
 

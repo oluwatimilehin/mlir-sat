@@ -10,6 +10,7 @@ from eclasses.tensor import Tensor
 from egglog import Vec
 from typing import List
 
+
 class Converter:
 
     @classmethod
@@ -20,7 +21,7 @@ class Converter:
         current_block = region.blocks.first
 
         while current_block is not None:
-            ops : List[Operation] = []
+            ops: List[Operation] = []
             for op in current_block.ops:
                 if isinstance(op, FuncOp):
                     processed_func = cls._process_func_op(op)
@@ -30,7 +31,6 @@ class Converter:
             current_block = current_block.next_block
 
         return Region(Vec[Block](*blocks))
-    
 
     @classmethod
     def to_mlir(cls, region: Region) -> ModuleOp:
@@ -65,7 +65,7 @@ class Converter:
                 tensor_type = cls._to_tensorT(arg_type)
             else:
                 raise ValueError(f"Unsupported argument type: {arg_type}")
-        
+
             argsVec.append(SSA(arg_name, tensor_type))
 
         opsVec: List[Operation] = []
@@ -114,7 +114,7 @@ class Converter:
                 function_output_name = printer.print_ssa_value(op.results[0])
                 function_output_type = cls._to_tensorT(op.results[0].type)
                 matmul_return_val = SSA(function_output_name, function_output_type)
-                opsVec.append(Linalg.matmul(Vec[SSA](*egg_ins), Vec[SSA](*egg_outs), matmul_return_val))
+                opsVec.append(Linalg.matmul(egg_ins[0], egg_ins[1], matmul_return_val))
 
             if isinstance(op, ReturnOp):
                 print(f"Processing ReturnOp")
@@ -123,5 +123,9 @@ class Converter:
 
                 opsVec.append(Function.ret(SSA(return_arg, return_type)))
 
-        print(f"opsVec: {opsVec}")
-        return Function.func(function_name, Vec[SSA](*argsVec), Vec[Operation](*opsVec), function_return_type)
+        return Function.func(
+            function_name,
+            Vec[SSA](*argsVec),
+            Vec[Operation](*opsVec),
+            function_return_type,
+        )
