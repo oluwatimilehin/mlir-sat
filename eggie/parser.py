@@ -1,5 +1,6 @@
 from .ast import *
 from .lexer import *
+from eclasses.base import Region
 import logging
 
 """
@@ -39,12 +40,11 @@ logger = logging.getLogger(__name__)
 
 
 class Parser:
-    def __init__(self, lexer: Lexer):
-        self.lexer = lexer
+    def __init__(self, region: Region):
+        self.lexer = Lexer(str(region))
 
-    def parse(self) -> str:
-
-        return str(self.parse_region())
+    def parse(self) -> RegionAST:
+        return self.parse_region()
 
     def parse_region(self) -> RegionAST:
         logger.info("Parsing a region")

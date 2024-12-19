@@ -5,11 +5,8 @@ from .base import *
 
 class Tensor(Expr):
     @method()
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     @method()
     @classmethod
-    def empty(self, return_val: SSA) -> Operation:
-        ...
-
+    def empty(self, return_val: SSA) -> Operation: ...

@@ -49,26 +49,9 @@ if __name__ == "__main__":
         egglog_region = Converter.to_egglog(module_op)
 
         egraph = EGraph(save_egglog_string=True)
-        # egraph.register(egglog_region)
-
         egraph.run(1)
-        # print(egraph.display())
-        # print(egraph.as_egglog_string)
-
         extracted = egraph.extract(egglog_region)
-        # print(extracted)
+        print(extracted)
 
-        egglog_parser = Parser(Lexer(str(extracted)))
-        extracted_mlir = egglog_parser.parse()
-        mlir_parser = IRParser(context(), extracted_mlir)
-        converted_module_op = mlir_parser.parse_module(extracted_mlir)
-        printer.print(converted_module_op)
-
+        converted_module_op = Converter.to_mlir(extracted, context())
         assert module_op.is_structurally_equivalent(converted_module_op)
-
-
-# todo:
-# - take a MLIR file and parse it using xdsl
-# - Come up with Egglog classes for MLIR and convert to Egglog
-# - Convert back to MLIR
-# - At first, I want to confirm that I can go back and forth and the files are equivalent.

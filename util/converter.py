@@ -1,18 +1,22 @@
-from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType
-from xdsl.dialects.func import FuncOp, ReturnOp
-from xdsl.dialects.linalg import MatmulOp
-from xdsl.dialects.tensor import EmptyOp
-from xdsl.printer import Printer
 from eclasses.base import Operation, TensorT, SSA, Region, Block
 from eclasses.function import Function
 from eclasses.linalg import Linalg
 from eclasses.tensor import Tensor
 from egglog import Vec
+from eggie.parser import Parser
+
+from xdsl.context import MLContext
+from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType
+from xdsl.dialects.func import FuncOp, ReturnOp
+from xdsl.dialects.linalg import MatmulOp
+from xdsl.dialects.tensor import EmptyOp
+from xdsl.parser import Parser as IRParser
+from xdsl.printer import Printer
+
 from typing import List
 
 
 class Converter:
-
     @classmethod
     def to_egglog(cls, module_op: ModuleOp) -> Region:
         blocks: List[Block] = []
@@ -33,29 +37,11 @@ class Converter:
         return Region(Vec[Block](*blocks))
 
     @classmethod
-    def to_mlir(cls, region: Region) -> ModuleOp:
-        """
-            Region(
-            Vec[Block](
-                Block(
-                    Vec[SSA].empty(),
-                    Vec[Operation](
-                        Function.func(
-                            "_2mm_small",
-                            Vec[SSA](SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32"))),
-                            Vec[Operation](
-                                Tensor.empty(SSA("0", TensorT(73, 79, "i32"))),
-                                Linalg.matmul(SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32")), SSA("1", TensorT(73, 79, "i32"))),
-                                Function.ret(SSA("1", TensorT(73, 79, "i32"))),
-                            ),
-                            TensorT(73, 79, "i32"),
-                        )
-                    ),
-                )
-            )
-        )
-        """
-        pass
+    def to_mlir(cls, region: Region, context: MLContext) -> ModuleOp:
+        egglog_parser = Parser(region)
+        region_ast = egglog_parser.parse()
+        mlir_parser = IRParser(context, str(region_ast))
+        return mlir_parser.parse_module(str(region_ast))
 
     @classmethod
     def _to_tensorT(cls, type: TensorType) -> TensorT:
