@@ -1,6 +1,6 @@
 from .ast import *
 from .lexer import *
-from eclasses.base import Region
+from eggie.eclasses.base import Region
 import logging
 
 """

@@ -1,9 +1,10 @@
-from eclasses.base import Operation, TensorT, SSA, Region, Block
-from eclasses.function import Function
-from eclasses.linalg import Linalg
-from eclasses.tensor import Tensor
-from egglog import Vec
+from eggie.eclasses.base import Operation, TensorT, SSA, Region, Block
+from eggie.eclasses.function import Function
+from eggie.eclasses.linalg import Linalg
+from eggie.eclasses.tensor import Tensor
 from eggie.parser import Parser
+
+from egglog import Vec
 
 from xdsl.context import MLContext
 from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType
