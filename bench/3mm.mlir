@@ -1,10 +1,10 @@
-func.func private @printNewline()
-func.func private @clock() -> i64
-func.func private @displayTime(i64, i64)
-func.func private @printI64Tensor2D(tensor<?x?xi64>)
+// func.func private @printNewline()
+// func.func private @clock() -> i64
+// func.func private @displayTime(i64, i64)
+// func.func private @printI64Tensor2D(tensor<?x?xi64>)
 
-func.func @fillRandomI64Tensor2D(%tensor: tensor<?x?xi64>) -> tensor<?x?xi64> {
-    // Create a 2D tensor with random values with the linalg.fill_rng_2d op
+func.func @fillI64Tensor2D(%tensor: tensor<?x?xi64>) -> tensor<?x?xi64> {
+    // Create a 2D tensor with linalg.fill op
 
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
@@ -12,17 +12,11 @@ func.func @fillRandomI64Tensor2D(%tensor: tensor<?x?xi64>) -> tensor<?x?xi64> {
     %cols = tensor.dim %tensor, %c1 : tensor<?x?xi64>
     %rows = tensor.dim %tensor, %c0 : tensor<?x?xi64>
 
-    %seed = arith.constant 0 : i32
-    %min = arith.constant -10.0 : f64
-    %max = arith.constant 10.0 : f64
-    %init = tensor.empty(%rows, %cols) : tensor<?x?xf64>
+    %val = arith.constant 10 : i64
+    %init = tensor.empty(%rows, %cols) : tensor<?x?xi64>
 
-    %init_filled = linalg.fill_rng_2d ins(%min, %max, %seed : f64, f64, i32) 
-                                      outs(%init : tensor<?x?xf64>) -> tensor<?x?xf64>
-
-    // Floor each value and cast to i64 with generic op
-    %init_floor = linalg.floor ins(%init_filled : tensor<?x?xf64>) outs(%init : tensor<?x?xf64>) -> tensor<?x?xf64>
-    %tensor_filled = arith.fptosi %init_floor : tensor<?x?xf64> to tensor<?x?xi64>
+    %tensor_filled = linalg.fill ins(%val : i64) 
+                                      outs(%init : tensor<?x?xi64>) -> tensor<?x?xi64>
 
     return %tensor_filled : tensor<?x?xi64>
 }

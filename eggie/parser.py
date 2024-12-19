@@ -14,7 +14,7 @@ Region(
                     Vec[SSA](SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32"))),
                     Vec[Operation](
                         Tensor.empty(SSA("0", TensorT(73, 79, "i32"))),
-                        Linalg.matmul(SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32")), SSA("1", TensorT(73, 79, "i32"))),
+                        Linalg.matmul(SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32")),SSA("0", TensorT(73, 79, "i32"), SSA("1", TensorT(73, 79, "i32"))),
                         Function.ret(SSA("1", TensorT(73, 79, "i32"))),
                     ),
                     TensorT(73, 79, "i32"),
@@ -28,12 +28,12 @@ TODO:
 - make it work for more complex MLIR<->Egglog programs
 - replace assertions with proper if/else/exceptions
 """
-logging.basicConfig(
-    format="%(asctime)s,%(msecs)d %(levelname)-8s [%(pathname)s:%(lineno)d in "
-    "function %(funcName)s] %(message)s",
-    datefmt="%Y-%m-%d:%H:%M:%S",
-    level=logging.INFO,
-)
+# logging.basicConfig(
+#     format="%(asctime)s,%(msecs)d %(levelname)-8s [%(pathname)s:%(lineno)d in "
+#     "function %(funcName)s] %(message)s",
+#     datefmt="%Y-%m-%d:%H:%M:%S",
+#     level=logging.INFO,
+# )
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +42,9 @@ class Parser:
     def __init__(self, lexer: Lexer):
         self.lexer = lexer
 
-    def parse(self) -> RegionAST:
+    def parse(self) -> str:
 
-        return self.parse_region()
+        return str(self.parse_region())
 
     def parse_region(self) -> RegionAST:
         logger.info("Parsing a region")
@@ -118,7 +118,7 @@ class Parser:
                 case EgglogTokenKind.COMMA:
                     continue
                 case EgglogTokenKind.RIGHT_PARENTHESIS:
-                    continue;
+                    continue
                 case _:
                     raise ValueError(f"Unknown expression found in Vec: {token}")
 
@@ -263,8 +263,13 @@ class Parser:
                 self.lexer.next_token()
                 self.lexer.next_token()
 
-                z = self.parse_ssa()
-                val = LinalgMatmulAST(x, y, z)
+                out = self.parse_ssa()
+
+                # pop comma and SSA keyword
+                self.lexer.next_token()
+                self.lexer.next_token()
+                return_val = self.parse_ssa()
+                val = LinalgMatmulAST(x, y, out, return_val)
             case _:
                 logger.warn(f"Unregistered operation: {op}")
 

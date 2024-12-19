@@ -1,7 +1,6 @@
 from __future__ import annotations
 from egglog import *
 
-
 class TensorT(Expr):
     @method()
     def __init__(self, i: i64Like, j: i64Like, t: StringLike):
@@ -9,6 +8,7 @@ class TensorT(Expr):
 
 
 class SSA(Expr):
+    # todo: we have other non-tensor types like i64, f64, etc.
     @method()
     def __init__(self, name: StringLike, type: TensorT):
         pass

@@ -105,7 +105,6 @@ class Lexer:
                 char = self.input[self.index]
 
             self.index += 1
-            print(f"returning literal: {token}")
             return Token(EgglogTokenKind.STRING_LITERAL, token)
 
         self.index += 1

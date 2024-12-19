@@ -34,6 +34,27 @@ class Converter:
 
     @classmethod
     def to_mlir(cls, region: Region) -> ModuleOp:
+        """
+            Region(
+            Vec[Block](
+                Block(
+                    Vec[SSA].empty(),
+                    Vec[Operation](
+                        Function.func(
+                            "_2mm_small",
+                            Vec[SSA](SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32"))),
+                            Vec[Operation](
+                                Tensor.empty(SSA("0", TensorT(73, 79, "i32"))),
+                                Linalg.matmul(SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32")), SSA("1", TensorT(73, 79, "i32"))),
+                                Function.ret(SSA("1", TensorT(73, 79, "i32"))),
+                            ),
+                            TensorT(73, 79, "i32"),
+                        )
+                    ),
+                )
+            )
+        )
+        """
         pass
 
     @classmethod
@@ -45,13 +66,13 @@ class Converter:
             element_type = f"i{element_type.width.data}"
         else:
             raise ValueError(f"Unsupported element type: {element_type}")
-
         return TensorT(shape[0], shape[1], element_type)
 
     @classmethod
     def _process_func_op(cls, func_op: FuncOp) -> Operation:
         function_name = func_op.properties["sym_name"].data
         print(f"function name: {function_name}")
+
         function_return_type = cls._to_tensorT(func_op.function_type.outputs.data[0])
         func_op_args = func_op.args
 
@@ -114,7 +135,11 @@ class Converter:
                 function_output_name = printer.print_ssa_value(op.results[0])
                 function_output_type = cls._to_tensorT(op.results[0].type)
                 matmul_return_val = SSA(function_output_name, function_output_type)
-                opsVec.append(Linalg.matmul(egg_ins[0], egg_ins[1], matmul_return_val))
+                opsVec.append(
+                    Linalg.matmul(
+                        egg_ins[0], egg_ins[1], egg_outs[0], matmul_return_val
+                    )
+                )
 
             if isinstance(op, ReturnOp):
                 print(f"Processing ReturnOp")

@@ -37,11 +37,11 @@ def context() -> MLContext:
 
 if __name__ == "__main__":
     path = Path(
-        "bench/2mm_small.mlir"
+        "bench/10mm.mlir"
     )  # todo: make this a command line argument/more generic
     with open(path) as f:
-        parser = IRParser(context(), f.read(), name=f"{path}")
-        module_op = parser.parse_module()
+        mlir_parser = IRParser(context(), f.read(), name=f"{path}")
+        module_op = mlir_parser.parse_module()
 
         printer = Printer(print_generic_format=False)
         printer.print(module_op)
@@ -56,10 +56,15 @@ if __name__ == "__main__":
         # print(egraph.as_egglog_string)
 
         extracted = egraph.extract(egglog_region)
-        print(extracted)
+        # print(extracted)
 
-        parser = Parser(Lexer(str(extracted)))
-        print(parser.parse())
+        egglog_parser = Parser(Lexer(str(extracted)))
+        extracted_mlir = egglog_parser.parse()
+        mlir_parser = IRParser(context(), extracted_mlir)
+        converted_module_op = mlir_parser.parse_module(extracted_mlir)
+        printer.print(converted_module_op)
+
+        assert module_op.is_structurally_equivalent(converted_module_op)
 
 
 # todo:
