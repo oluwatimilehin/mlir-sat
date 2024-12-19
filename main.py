@@ -19,6 +19,8 @@ from xdsl.printer import Printer
 from util.converter import Converter
 
 from egglog import *
+from eggie.parser import Parser
+from eggie.lexer import Lexer
 
 
 def context() -> MLContext:
@@ -56,6 +58,8 @@ if __name__ == "__main__":
         extracted = egraph.extract(egglog_region)
         print(extracted)
 
+        parser = Parser(Lexer(str(extracted)))
+        print(parser.parse())
 
 
 # todo:
