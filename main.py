@@ -43,15 +43,14 @@ if __name__ == "__main__":
         mlir_parser = IRParser(context(), f.read(), name=f"{path}")
         module_op = mlir_parser.parse_module()
 
-        printer = Printer(print_generic_format=False)
-        printer.print(module_op)
+        # printer = Printer(print_generic_format=False)
+        # printer.print(module_op)
 
         egglog_region = Converter.to_egglog(module_op)
 
         egraph = EGraph(save_egglog_string=True)
         egraph.run(1)
         extracted = egraph.extract(egglog_region)
-        print(extracted)
 
         converted_module_op = Converter.to_mlir(extracted, context())
         assert module_op.is_structurally_equivalent(converted_module_op)
