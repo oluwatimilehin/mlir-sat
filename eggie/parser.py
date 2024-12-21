@@ -33,7 +33,7 @@ TODO:
 logger = logging.getLogger(__name__)
 
 
-class Parser:
+class EgglogParser:
     def __init__(self, region: Region):
         self.lexer = Lexer(str(region))
 
