@@ -48,7 +48,7 @@ if __name__ == "__main__":
         extracted = egraph.extract(egglog_region)
 
         print(extracted)
-        egraph.display()
+        # egraph.display()
 
         converted_module_op = Converter.to_mlir(extracted, context())
         assert module_op.is_structurally_equivalent(converted_module_op)

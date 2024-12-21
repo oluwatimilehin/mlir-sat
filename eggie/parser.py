@@ -84,7 +84,7 @@ class Parser:
         if token.kind != EgglogTokenKind.RIGHT_SQUARE_BRACKET:
             raise ValueError(f"Expected ] in vec declaration; found: {token}")
 
-        token = self.lexer.next_token()
+        token = self.lexer.next_token()  # Can be a left parenthesis or a dot
 
         # empty vector handling
         if token.kind == EgglogTokenKind.DOT:
@@ -94,9 +94,6 @@ class Parser:
             self.lexer.next_token()
             self.lexer.next_token()
             return results
-
-        # # pop a left parenthesis
-        # self.lexer.next_token()
 
         while token.kind != EgglogTokenKind.RIGHT_PARENTHESIS:
             token = self.lexer.next_token()
@@ -274,7 +271,7 @@ class Parser:
         return val
 
     def _parse_function(self) -> OperationAST:
-        op = self._get_dialect_operation()
+        op = self._get_dialect_operation() 
 
         # pop left parenthesis
         self.lexer.next_token()
