@@ -34,26 +34,45 @@ def context() -> MLContext:
 
 
 if __name__ == "__main__":
-    path = Path("bench/2mm_small.mlir")
-    with open(path) as f:
-        mlir_parser = IRParser(context(), f.read(), name=f"{path}")
-        module_op = mlir_parser.parse_module()
+    current_dir = Path(__file__).parent
+    data_dir = f"{current_dir}/data"
 
-        egglog_region = Converter.to_egglog(module_op)
+    models_path = f"{data_dir}/mlir"
+    eggs_path = f"{data_dir}/eggs"
+    converted_path = f"{data_dir}/converted"
 
-        egraph = EGraph(save_egglog_string=True)
-        egraph.run(1)
-        extracted = egraph.extract(egglog_region)
+    mlir_files = [f for f in Path(models_path).iterdir() if f.suffix == ".mlir"]
 
-        print(extracted)
-        # egraph.display()
+    for mlir_file in mlir_files:
+        file_name = Path(mlir_file).stem
+        print(f"Processing mlir: {file_name}")
 
-        converted_module_op = Converter.to_mlir(extracted, context())
-        assert module_op.is_structurally_equivalent(converted_module_op)
+        if file_name == "160mm":
+            # todo: need to come back to handle this, as egglog creates variables
+            continue
 
-        printer = Printer(print_generic_format=False)
-        print("Original module op:")
-        printer.print(module_op)
+        with open(mlir_file) as f:
+            mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")
+            module_op = mlir_parser.parse_module()
 
-        print("New module op:")
-        printer.print(converted_module_op)
+            egglog_region = Converter.to_egglog(module_op)
+            egg_file_name = f"{eggs_path}/{file_name}.egg"
+            with open(egg_file_name, "w") as f:
+                f.write(str(egglog_region))
+
+            egraph = EGraph(save_egglog_string=True)
+            egraph.run(1)
+
+            extracted = egraph.extract(egglog_region)
+            converted_module_op = Converter.to_mlir(extracted, context())
+            assert module_op.is_structurally_equivalent(converted_module_op)
+
+            converted_egg_file = f"{converted_path}/{file_name}-converted.egg"
+            converted_mlir_file = f"{converted_path}/{file_name}-converted.mlir"
+
+            with open(converted_mlir_file, "w") as f:
+                printer = Printer(stream=f)
+                printer.print(converted_module_op)
+
+            with open(converted_egg_file, "w") as f:
+                f.write(str(extracted))
