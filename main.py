@@ -35,7 +35,7 @@ def context() -> MLContext:
 
 if __name__ == "__main__":
     path = Path(
-        "bench/2mm_small.mlir"  # TODO: the parser fails for 3mm_small.mlir; need to investigate it.
+        "bench/3mm_small.mlir"  # TODO: the parser fails for 3mm_small.mlir; need to investigate it.
     )  # todo: make this a command line argument/more generic
     with open(path) as f:
         mlir_parser = IRParser(context(), f.read(), name=f"{path}")

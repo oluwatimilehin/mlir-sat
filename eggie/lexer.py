@@ -11,7 +11,7 @@ class EgglogTokenKind(Enum):
     LEFT_PARENTHESIS = auto()
     LEFT_SQUARE_BRACKET = auto()
     LINALG = auto()
-    NUMBER_LITERAL = auto()
+    INTEGER_LITERAL = auto()
     OPERATION = auto()
     REGION = auto()
     RIGHT_PARENTHESIS = auto()
@@ -19,7 +19,7 @@ class EgglogTokenKind(Enum):
     SSA = auto()
     STRING_LITERAL = auto()
     TENSOR = auto()
-    TENSORT = auto()
+    TENSOR_TYPE = auto()
     VEC = auto()
 
 
@@ -43,12 +43,12 @@ keyword_to_token = {
     "Vec": EgglogTokenKind.VEC,
     "SSA": EgglogTokenKind.SSA,
     "Operation": EgglogTokenKind.OPERATION,
-    "TensorT": EgglogTokenKind.TENSORT,
+    "TensorT": EgglogTokenKind.TENSOR_TYPE,
 }
 
 
 str_to_token = dialect_to_token | chars_to_token | keyword_to_token
-Token = namedtuple("Token", ["kind", "text"])
+EgglogToken = namedtuple("Token", ["kind", "text"])
 
 
 class Lexer:
@@ -57,23 +57,27 @@ class Lexer:
         self.index = 0
 
     @classmethod
-    def is_keyword(cls, token: Token) -> bool:
+    def is_keyword(cls, token: EgglogToken) -> bool:
         return keyword_to_token.get(token.text) != None
 
     @classmethod
-    def is_dialect(cls, token: Token) -> bool:
+    def is_dialect(cls, token: EgglogToken) -> bool:
         return dialect_to_token.get(token.text) != None
 
-    def next_token(self) -> Token:
+    def next_token(self) -> EgglogToken:
         if self.index >= len(self.input):
-            return Token(EgglogTokenKind.EOF, "")
+            return EgglogToken(EgglogTokenKind.EOF, "")
+
+        if self.input[self.index] == ",":
+            # don't return a comma
+            self.index += 1
 
         char = self.input[self.index]
 
         while char.isspace():
             self.index += 1
             if self.index >= len(self.input):
-                return Token(EgglogTokenKind.EOF, "")
+                return EgglogToken(EgglogTokenKind.EOF, "")
             char = self.input[self.index]
 
         if char.isalnum():
@@ -84,12 +88,12 @@ class Lexer:
                 char = self.input[self.index]
 
             if token in str_to_token:
-                return Token(str_to_token[token], token)
+                return EgglogToken(str_to_token[token], token)
 
             if token.isdigit():
-                return Token(EgglogTokenKind.NUMBER_LITERAL, token)
+                return EgglogToken(EgglogTokenKind.INTEGER_LITERAL, token)
 
-            return Token(EgglogTokenKind.STRING_LITERAL, token)
+            return EgglogToken(EgglogTokenKind.STRING_LITERAL, token)
 
         if char == '"':
             token = ""
@@ -102,10 +106,10 @@ class Lexer:
                 char = self.input[self.index]
 
             self.index += 1
-            return Token(EgglogTokenKind.STRING_LITERAL, token)
+            return EgglogToken(EgglogTokenKind.STRING_LITERAL, token)
 
         self.index += 1
         if char not in str_to_token:
             raise ValueError(f"Unknown character: {char}")
 
-        return Token(str_to_token[char], char)
+        return EgglogToken(str_to_token[char], char)
