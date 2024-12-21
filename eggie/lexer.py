@@ -1,27 +1,26 @@
 from enum import Enum, auto
-import logging
 from collections import namedtuple
 
 
 class EgglogTokenKind(Enum):
-    REGION = auto()
     BLOCK = auto()
-    FUNCTION = auto()
-    SSA = auto()
-    TENSOR = auto()
-    LINALG = auto()
-    TENSORT = auto()
-    OPERATION = auto()
-    VEC = auto()
-    STRING_LITERAL = auto()
-    NUMBER_LITERAL = auto()
     COMMA = auto()
-    LEFT_SQUARE_BRACKET = auto()
-    RIGHT_SQUARE_BRACKET = auto()
-    LEFT_PARENTHESIS = auto()
-    RIGHT_PARENTHESIS = auto()
     DOT = auto()
     EOF = auto()
+    FUNCTION = auto()
+    LEFT_PARENTHESIS = auto()
+    LEFT_SQUARE_BRACKET = auto()
+    LINALG = auto()
+    NUMBER_LITERAL = auto()
+    OPERATION = auto()
+    REGION = auto()
+    RIGHT_PARENTHESIS = auto()
+    RIGHT_SQUARE_BRACKET = auto()
+    SSA = auto()
+    STRING_LITERAL = auto()
+    TENSOR = auto()
+    TENSORT = auto()
+    VEC = auto()
 
 
 dialect_to_token = {
@@ -90,8 +89,6 @@ class Lexer:
             if token.isdigit():
                 return Token(EgglogTokenKind.NUMBER_LITERAL, token)
 
-            # todo: this string literal mechanism is wrong
-            # print(f"returning literal: {token}")
             return Token(EgglogTokenKind.STRING_LITERAL, token)
 
         if char == '"':
@@ -109,7 +106,6 @@ class Lexer:
 
         self.index += 1
         if char not in str_to_token:
-            logging.warn(f"Unseen character: {char}")
-            return
+            raise ValueError(f"Unknown character: {char}")
 
         return Token(str_to_token[char], char)

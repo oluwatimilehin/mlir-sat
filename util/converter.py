@@ -1,7 +1,7 @@
-from eggie.eclasses.base import Operation, TensorT, SSA, Region, Block
-from eggie.eclasses.function import Function
-from eggie.eclasses.linalg import Linalg
-from eggie.eclasses.tensor import Tensor
+from eggie.enode.base import Operation, TensorT, SSA, Region, Block
+from eggie.enode.function import Function
+from eggie.enode.linalg import Linalg
+from eggie.enode.tensor import Tensor
 from eggie.parser import Parser
 
 from egglog import Vec
@@ -13,7 +13,6 @@ from xdsl.dialects.linalg import MatmulOp
 from xdsl.dialects.tensor import EmptyOp
 from xdsl.ir import SSAValue
 from xdsl.parser import Parser as IRParser
-from xdsl.printer import Printer
 
 from dataclasses import dataclass, field
 from typing import List

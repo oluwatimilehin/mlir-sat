@@ -1,6 +1,6 @@
 from .ast import *
 from .lexer import *
-from eggie.eclasses.base import Region
+from eggie.enode.base import Region
 import logging
 
 """
@@ -29,12 +29,6 @@ TODO:
 - make it work for more complex MLIR<->Egglog programs
 - replace assertions with proper if/else/exceptions
 """
-# logging.basicConfig(
-#     format="%(asctime)s,%(msecs)d %(levelname)-8s [%(pathname)s:%(lineno)d in "
-#     "function %(funcName)s] %(message)s",
-#     datefmt="%Y-%m-%d:%H:%M:%S",
-#     level=logging.INFO,
-# )
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +38,9 @@ class Parser:
         self.lexer = Lexer(str(region))
 
     def parse(self) -> RegionAST:
-        return self.parse_region()
+        return self._parse_region()
 
-    def parse_region(self) -> RegionAST:
+    def _parse_region(self) -> RegionAST:
         logger.info("Parsing a region")
         token = self.lexer.next_token()
 
@@ -62,7 +56,7 @@ class Parser:
         if token.kind != EgglogTokenKind.VEC:
             raise ValueError("Expected a vector")
 
-        blocks = self.parse_vector()
+        blocks = self._parse_vector()
 
         if self.lexer.next_token().kind != EgglogTokenKind.RIGHT_PARENTHESIS:
             raise ValueError("Expected ) at end of region")
@@ -70,7 +64,7 @@ class Parser:
         return RegionAST(blocks)
 
     # todo: maybe remove these checks once I have something working?
-    def parse_vector(self) -> List[ExprAST]:
+    def _parse_vector(self) -> List[ExprAST]:
         results: List[ExprAST] = []
 
         token = self.lexer.next_token()
@@ -91,6 +85,8 @@ class Parser:
             raise ValueError(f"Expected ] in vec declaration; found: {token}")
 
         token = self.lexer.next_token()
+
+        # empty vector handling
         if token.kind == EgglogTokenKind.DOT:
             assert self.lexer.next_token().text == "empty"
 
@@ -106,15 +102,15 @@ class Parser:
             token = self.lexer.next_token()
             match token.kind:
                 case EgglogTokenKind.BLOCK:
-                    results.append(self.parse_block())
+                    results.append(self._parse_block())
                 case EgglogTokenKind.SSA:
-                    results.append(self.parse_ssa())
+                    results.append(self._parse_ssa())
                 case EgglogTokenKind.TENSOR:
-                    results.append(self.parse_tensor())
+                    results.append(self._parse_tensor())
                 case EgglogTokenKind.LINALG:
-                    results.append(self.parse_linalg())
+                    results.append(self._parse_linalg())
                 case EgglogTokenKind.FUNCTION:
-                    results.append(self.parse_function())
+                    results.append(self._parse_function())
                 case EgglogTokenKind.COMMA:
                     continue
                 case EgglogTokenKind.RIGHT_PARENTHESIS:
@@ -124,7 +120,7 @@ class Parser:
 
         return results
 
-    def parse_block(self) -> BlockAST:
+    def _parse_block(self) -> BlockAST:
         # pop left parenthesis
         self.lexer.next_token()
 
@@ -136,7 +132,7 @@ class Parser:
                 f"Expected a vector as first argument to a Block, received {token}"
             )
 
-        args: List[ExprAST] = self.parse_vector()
+        args: List[ExprAST] = self._parse_vector()
 
         # pop the comma
         self.lexer.next_token()
@@ -147,18 +143,18 @@ class Parser:
                 f"Expected a vector as second argument to a Block, received {token}"
             )
 
-        ops: List[ExprAST] = self.parse_vector()
+        ops: List[ExprAST] = self._parse_vector()
 
-        # pop comma and right parenthesis
+        # pop comma or right parenthesis
         token = self.lexer.next_token()
 
-        if token.kind == EgglogTokenKind.COMMA:
-            # then pop right parenthesis; otherwise I assume the right parenthesis is what got popped
-            assert self.lexer.next_token().kind == EgglogTokenKind.RIGHT_PARENTHESIS
+        # if token.kind == EgglogTokenKind.COMMA:
+        #     # then pop right parenthesis; otherwise I assume the right parenthesis is what got popped
+        #     assert self.lexer.next_token().kind == EgglogTokenKind.RIGHT_PARENTHESIS
 
         return BlockAST(args, ops)
 
-    def parse_tensor_type(self) -> TensorTypeAST:
+    def _parse_tensor_type(self) -> TensorTypeAST:
         # pop left parenthesis
         self.lexer.next_token()
 
@@ -197,7 +193,7 @@ class Parser:
 
         return TensorTypeAST(i, j, type)
 
-    def parse_ssa(self) -> SSAExprAST:
+    def _parse_ssa(self) -> SSAExprAST:
         # pop left parenthesis
         self.lexer.next_token()
 
@@ -214,14 +210,14 @@ class Parser:
         if token.kind != EgglogTokenKind.TENSORT:
             raise ValueError(f"Expected a tensor type for SSA; found: {token}")
 
-        type = self.parse_tensor_type()
+        type = self._parse_tensor_type()
 
         # pop right parenthesis
         self.lexer.next_token()
 
         return SSAExprAST(name, type)
 
-    def parse_tensor(self) -> OperationAST:
+    def _parse_tensor(self) -> OperationAST:
         op = self._get_dialect_operation()
 
         # pop left parenthesis
@@ -231,7 +227,7 @@ class Parser:
         match op:
             case "empty":
                 self.lexer.next_token()
-                ssa = self.parse_ssa()
+                ssa = self._parse_ssa()
                 val = TensorEmptyAST(ssa)
             case _:
                 logger.warn(f"Unregistered operation: {op}")
@@ -240,7 +236,7 @@ class Parser:
         self.lexer.next_token()
         return val
 
-    def parse_linalg(self) -> OperationAST:
+    def _parse_linalg(self) -> OperationAST:
         op = self._get_dialect_operation()
 
         # pop left parenthesis
@@ -251,24 +247,24 @@ class Parser:
             case "matmul":
                 # pop SSA keyword
                 self.lexer.next_token()
-                x = self.parse_ssa()
+                x = self._parse_ssa()
 
                 # pop comma and SSA keyword
                 self.lexer.next_token()
                 self.lexer.next_token()
 
-                y = self.parse_ssa()
+                y = self._parse_ssa()
 
                 # pop comma and SSA keyword
                 self.lexer.next_token()
                 self.lexer.next_token()
 
-                out = self.parse_ssa()
+                out = self._parse_ssa()
 
                 # pop comma and SSA keyword
                 self.lexer.next_token()
                 self.lexer.next_token()
-                return_val = self.parse_ssa()
+                return_val = self._parse_ssa()
                 val = LinalgMatmulAST(x, y, out, return_val)
             case _:
                 logger.warn(f"Unregistered operation: {op}")
@@ -277,7 +273,7 @@ class Parser:
         self.lexer.next_token()
         return val
 
-    def parse_function(self) -> OperationAST:
+    def _parse_function(self) -> OperationAST:
         op = self._get_dialect_operation()
 
         # pop left parenthesis
@@ -297,24 +293,24 @@ class Parser:
                 self.lexer.next_token()
                 self.lexer.next_token()
 
-                args = self.parse_vector()
+                args = self._parse_vector()
 
                 # pop comma and vec keyword
                 self.lexer.next_token()
                 self.lexer.next_token()
 
-                ops = self.parse_vector()
+                ops = self._parse_vector()
 
                 # pop comma and TensorT keyword
                 self.lexer.next_token()
                 self.lexer.next_token()
 
-                type = self.parse_tensor_type()
+                type = self._parse_tensor_type()
                 val = FuncAST(name, args, ops, type)
             case "ret":
                 # pop ssa keyword
                 self.lexer.next_token()
-                type = self.parse_ssa()
+                type = self._parse_ssa()
 
                 val = FuncReturnAST(type)
             case _:

@@ -19,8 +19,6 @@ from xdsl.printer import Printer
 from util.converter import Converter
 
 from egglog import *
-from eggie.parser import Parser
-from eggie.lexer import Lexer
 
 
 def context() -> MLContext:
@@ -37,7 +35,7 @@ def context() -> MLContext:
 
 if __name__ == "__main__":
     path = Path(
-        "bench/10mm.mlir"
+        "bench/2mm_small.mlir"  # TODO: the parser fails for 3mm_small.mlir; need to investigate it.
     )  # todo: make this a command line argument/more generic
     with open(path) as f:
         mlir_parser = IRParser(context(), f.read(), name=f"{path}")
@@ -50,6 +48,7 @@ if __name__ == "__main__":
         extracted = egraph.extract(egglog_region)
 
         print(extracted)
+        egraph.display()
 
         converted_module_op = Converter.to_mlir(extracted, context())
         assert module_op.is_structurally_equivalent(converted_module_op)
