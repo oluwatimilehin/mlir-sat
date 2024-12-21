@@ -11,12 +11,12 @@ from xdsl.dialects import (
     tensor,
 )
 
-from xdsl.dialects.builtin import Builtin, ModuleOp
+from xdsl.dialects.builtin import Builtin
 
 from xdsl.parser import Parser as IRParser
 from xdsl.printer import Printer
 
-from util.converter import Converter
+from converter import Converter
 
 from egglog import *
 
