@@ -88,8 +88,14 @@ class Lexer:
                 return EgglogToken(EgglogTokenKind.EOF, "")
             char = self.input[self.index]
 
-        if char.isalnum():
+        if char.isalnum() or char == "-":
             token: str = ""
+
+            if char == "-":
+                token += char
+                self.index += 1
+                char = self.input[self.index]
+
             while char.isalnum():
                 token += char
                 self.index += 1
@@ -98,7 +104,7 @@ class Lexer:
             if token in str_to_token:
                 return EgglogToken(str_to_token[token], token)
 
-            if token.isdigit():
+            if token.lstrip("-").isdigit():
                 return EgglogToken(EgglogTokenKind.INTEGER_LITERAL, token)
 
             return EgglogToken(EgglogTokenKind.STRING_LITERAL, token)
