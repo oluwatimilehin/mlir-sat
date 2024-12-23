@@ -9,6 +9,7 @@ from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType
 from xdsl.dialects.func import FuncOp, ReturnOp
 from xdsl.dialects.linalg import MatmulOp
 from xdsl.dialects.tensor import EmptyOp
+from xdsl.irdl.operations import IRDLOperation
 from xdsl.ir import SSAValue
 
 
@@ -65,18 +66,21 @@ class SSANameGetter:
 
 
 class MLIRParser:
-    @classmethod
-    def to_egglog(cls, module_op: ModuleOp) -> Region:
+    def __init__(self, module_op: ModuleOp) -> None:
+        self._module_op = module_op
+        self.ssa_name_getter = SSANameGetter()
+
+    def parse(self) -> Region:
         blocks: List[Block] = []
 
-        region = module_op.body
+        region = self._module_op.body
         current_block = region.blocks.first
 
         while current_block is not None:
             ops: List[Operation] = []
             for op in current_block.ops:
                 if isinstance(op, FuncOp):
-                    processed_func = cls._process_func_op(op)
+                    processed_func = self._process_func_op(op)
                     ops.append(processed_func)
 
             blocks.append(Block(Vec[SSA](), Vec[Operation](*ops)))
@@ -84,8 +88,7 @@ class MLIRParser:
 
         return Region(Vec[Block](*blocks))
 
-    @classmethod
-    def _to_tensorT(cls, type: TensorType) -> TensorT:
+    def _to_tensorT(self, type: TensorType) -> TensorT:
         shape = type.get_shape()
         element_type = type.get_element_type()
 
@@ -95,11 +98,67 @@ class MLIRParser:
             raise ValueError(f"Unsupported element type: {element_type}")
         return TensorT(shape[0], shape[1], element_type)
 
-    @classmethod
-    def _process_func_op(cls, func_op: FuncOp) -> Operation:
+    def _process_op(self, op: IRDLOperation) -> Operation:
+        match op.dialect_name():
+            case "linalg":
+                return self._process_linalg(op)
+            case "tensor":
+                return self._process_tensor(op)
+            case "func":
+                return self._process_func(op)
+
+    def _process_linalg(self, op: IRDLOperation) -> Operation:
+        match op.name:
+            case MatmulOp.name:
+                return self._process_matmul_op(op)
+            case _:
+                raise ValueError(f"Unsupported linalg operation: {op}")
+
+    def _process_func(self, op: IRDLOperation) -> Operation:
+        match op.name:
+            case FuncOp.name:
+                return self._process_func_op(op)
+            case ReturnOp.name:
+                return_type = self._to_tensorT(op.arguments.types[0])
+                return_arg = self.ssa_name_getter.get_ssa_name(op.arguments[0])
+                return Function.ret(SSA(return_arg, return_type))
+            case "_":
+                raise ValueError(f"Unsupported func operation: {op}")
+
+    def _process_tensor(self, op: IRDLOperation) -> Operation:
+        match op.name:
+            case EmptyOp.name:
+                op_type = self._to_tensorT(op.tensor.type)
+                op_name = self.ssa_name_getter.get_ssa_name(op.results[0])
+                return Tensor.empty(SSA(op_name, op_type))
+            case "_":
+                raise ValueError(f"Unsupported func operation: {op}")
+
+    def _process_matmul_op(self, op: MatmulOp) -> Operation:
+        inputs = op.inputs
+        outputs = op.outputs
+
+        egg_ins: List[SSA] = []
+        egg_outs: List[SSA] = []
+
+        for input in inputs:
+            input_name = self.ssa_name_getter.get_ssa_name(input)
+            egg_ins.append(SSA(input_name, self._to_tensorT(input.type)))
+
+        for output in outputs:
+            output_name = self.ssa_name_getter.get_ssa_name(output)
+            egg_outs.append(SSA(output_name, self._to_tensorT(output.type)))
+
+        matmul_output_name = self.ssa_name_getter.get_ssa_name(op.results[0])
+        matmul_output_type = self._to_tensorT(op.results[0].type)
+        matmul_return_val = SSA(matmul_output_name, matmul_output_type)
+
+        return Linalg.matmul(egg_ins[0], egg_ins[1], egg_outs[0], matmul_return_val)
+
+    def _process_func_op(self, func_op: FuncOp) -> Operation:
         function_name = func_op.properties["sym_name"].data
 
-        function_return_type = cls._to_tensorT(func_op.function_type.outputs.data[0])
+        function_return_type = self._to_tensorT(func_op.function_type.outputs.data[0])
         func_op_args = func_op.args
 
         argsVec: List[SSA] = []
@@ -109,7 +168,7 @@ class MLIRParser:
             arg_type = arg.type
 
             if isinstance(arg_type, TensorType):
-                tensor_type = cls._to_tensorT(arg_type)
+                tensor_type = self._to_tensorT(arg_type)
             else:
                 raise ValueError(f"Unsupported argument type: {arg_type}")
 
@@ -119,44 +178,8 @@ class MLIRParser:
 
         # Sample programs are in the form of a region with a single block
         block = func_op.regions[0].blocks.first
-
-        ssa_name_getter = SSANameGetter()
-
         for op in block.ops:
-            if isinstance(op, EmptyOp):
-                op_type = cls._to_tensorT(op.tensor.type)
-                op_name = ssa_name_getter.get_ssa_name(op.results[0])
-                opsVec.append(Tensor.empty(SSA(op_name, op_type)))
-
-            if isinstance(op, MatmulOp):
-                inputs = op.inputs
-                outputs = op.outputs
-
-                egg_ins: List[SSA] = []
-                egg_outs: List[SSA] = []
-
-                for input in inputs:
-                    input_name = ssa_name_getter.get_ssa_name(input)
-                    egg_ins.append(SSA(input_name, cls._to_tensorT(input.type)))
-
-                for output in outputs:
-                    output_name = ssa_name_getter.get_ssa_name(output)
-                    egg_outs.append(SSA(output_name, cls._to_tensorT(output.type)))
-
-                matmul_output_name = ssa_name_getter.get_ssa_name(op.results[0])
-                matmul_output_type = cls._to_tensorT(op.results[0].type)
-                matmul_return_val = SSA(matmul_output_name, matmul_output_type)
-                opsVec.append(
-                    Linalg.matmul(
-                        egg_ins[0], egg_ins[1], egg_outs[0], matmul_return_val
-                    )
-                )
-
-            if isinstance(op, ReturnOp):
-                return_type = cls._to_tensorT(op.arguments.types[0])
-                return_arg = ssa_name_getter.get_ssa_name(op.arguments[0])
-
-                opsVec.append(Function.ret(SSA(return_arg, return_type)))
+            opsVec.append(self._process_op(op))
 
         return Function.func(
             function_name,

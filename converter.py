@@ -11,7 +11,7 @@ from xdsl.parser import Parser as IRParser
 class Converter:
     @classmethod
     def to_egglog(cls, module_op: ModuleOp) -> Region:
-        return MLIRParser.to_egglog(module_op)
+        return MLIRParser(module_op).parse()
 
     @classmethod
     def to_mlir(cls, region: Region, context: MLContext) -> ModuleOp:
