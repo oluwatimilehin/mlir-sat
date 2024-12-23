@@ -19,10 +19,10 @@ builtin.module {
     %y_cast = tensor.empty(%c175, %c250) : tensor<?x?xi64>
     %z_cast = tensor.empty(%c250, %c150) : tensor<?x?xi64>
     %w_cast = tensor.empty(%c150, %c10) : tensor<?x?xi64>
-    %x_filled = func.call @fillRandomI64Tensor2D(%x_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
-    %y_filled = func.call @fillRandomI64Tensor2D(%y_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
-    %z_filled = func.call @fillRandomI64Tensor2D(%z_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
-    %w_filled = func.call @fillRandomI64Tensor2D(%w_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %x_filled = func.call @fillI64Tensor2D(%x_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %y_filled = func.call @fillI64Tensor2D(%y_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %z_filled = func.call @fillI64Tensor2D(%z_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %w_filled = func.call @fillI64Tensor2D(%w_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
     %x = tensor.cast %x_filled : tensor<?x?xi64> to tensor<200x175xi64>
     %y = tensor.cast %y_filled : tensor<?x?xi64> to tensor<175x250xi64>
     %z = tensor.cast %z_filled : tensor<?x?xi64> to tensor<250x150xi64>

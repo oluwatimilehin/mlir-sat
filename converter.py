@@ -17,6 +17,5 @@ class Converter:
     def to_mlir(cls, region: Region, context: MLContext) -> ModuleOp:
         egglog_parser = EgglogParser(region)
         region_ast = egglog_parser.parse()
-        print(f"region_ast: {region_ast}")
         mlir_parser = IRParser(context, str(region_ast))
         return mlir_parser.parse_module()

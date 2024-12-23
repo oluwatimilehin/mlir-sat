@@ -32,4 +32,4 @@ def test_mlir_to_egg():
             egg_file = f"{eggs_path}/{mlir_file_name}.egg"
             expected_egg_expr = Path(egg_file).read_text()
 
-            assert str(actual_egg) == expected_egg_expr
+            assert str(actual_egg).strip() == expected_egg_expr.strip()

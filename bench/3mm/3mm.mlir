@@ -1,8 +1,3 @@
-// func.func private @printNewline()
-// func.func private @clock() -> i64
-// func.func private @displayTime(i64, i64)
-// func.func private @printI64Tensor2D(tensor<?x?xi64>)
-
 func.func @fillI64Tensor2D(%tensor: tensor<?x?xi64>) -> tensor<?x?xi64> {
     // Create a 2D tensor with linalg.fill op
 
@@ -33,24 +28,19 @@ func.func @main() -> i32 {
     %z_cast = tensor.empty(%c250, %c150) : tensor<?x?xi64>
     %w_cast = tensor.empty(%c150, %c10) : tensor<?x?xi64>
 
-    %x_filled = func.call @fillRandomI64Tensor2D(%x_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
-    %y_filled = func.call @fillRandomI64Tensor2D(%y_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
-    %z_filled = func.call @fillRandomI64Tensor2D(%z_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
-    %w_filled = func.call @fillRandomI64Tensor2D(%w_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %x_filled = func.call @fillI64Tensor2D(%x_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %y_filled = func.call @fillI64Tensor2D(%y_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %z_filled = func.call @fillI64Tensor2D(%z_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
+    %w_filled = func.call @fillI64Tensor2D(%w_cast) : (tensor<?x?xi64>) -> tensor<?x?xi64>
 
     %x = tensor.cast %x_filled : tensor<?x?xi64> to tensor<200x175xi64>
     %y = tensor.cast %y_filled : tensor<?x?xi64> to tensor<175x250xi64>
     %z = tensor.cast %z_filled : tensor<?x?xi64> to tensor<250x150xi64>
     %w = tensor.cast %w_filled : tensor<?x?xi64> to tensor<150x10xi64>
 
-    // %start = func.call @clock() : () -> i64  // Start measuring time
     %res = func.call @_3mm(%x, %y, %z, %w) : (tensor<200x175xi64>, tensor<175x250xi64>, tensor<250x150xi64>, tensor<150x10xi64>) -> tensor<200x10xi64>
-    // %end = func.call @clock() : () -> i64  // End measuring time
 
     %res_cast = tensor.cast %res : tensor<200x10xi64> to tensor<?x?xi64>
-   // func.call @printI64Tensor2D(%res_cast) : (tensor<?x?xi64>) -> ()
-   // func.call @printNewline() : () -> ()
-   // func.call @displayTime(%start, %end) : (i64, i64) -> ()
 
     %c0 = arith.constant 0 : i32
     func.return %c0 : i32
