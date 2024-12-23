@@ -3,7 +3,7 @@ from egglog import Expr, method
 from .base import *
 
 
-class Function(Expr):
+class Func(Expr):
     @method()
     def __init__(self) -> None: ...
 

@@ -41,16 +41,13 @@ if __name__ == "__main__":
     eggs_path = f"{data_dir}/eggs"
     converted_path = f"{data_dir}/converted"
 
-    # mlir_files = [f for f in Path(models_path).iterdir() if f.suffix == ".mlir"]
+    mlir_files = [f for f in Path(models_path).iterdir() if f.suffix == ".mlir"]
 
-    mlir_files = ["bench/3mm/3mm.mlir"]
+    # mlir_files = ["bench/3mm/3mm.mlir"]
     for mlir_file in mlir_files:
         file_name = Path(mlir_file).stem
         print(f"Processing mlir: {file_name}")
 
-        if file_name == "160mm":
-            # todo: need to come back to handle this, as egglog creates variables
-            continue
 
         with open(mlir_file) as f:
             mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")

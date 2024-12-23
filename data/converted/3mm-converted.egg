@@ -3,29 +3,29 @@ Region(
         Block(
             Vec[SSA].empty(),
             Vec[Operation](
-                Function.func(
+                Func.func(
                     "_3mm",
                     Vec[SSA](SSA("x", TensorT(200, 175, "i64")), SSA("y", TensorT(175, 250, "i64")), SSA("z", TensorT(250, 150, "i64")), SSA("w", TensorT(150, 10, "i64"))),
                     Vec[Operation](
-                        Tensor.empty(SSA("xy_init", TensorT(200, 250, "i64"))),
+                        Tensor.empty(Vec[SSA].empty(), SSA("xy_init", TensorT(200, 250, "i64"))),
                         Linalg.matmul(
                             SSA("x", TensorT(200, 175, "i64")), SSA("y", TensorT(175, 250, "i64")), SSA("xy_init", TensorT(200, 250, "i64")), SSA("xy", TensorT(200, 250, "i64"))
                         ),
-                        Tensor.empty(SSA("xy_z_init", TensorT(200, 150, "i64"))),
+                        Tensor.empty(Vec[SSA].empty(), SSA("xy_z_init", TensorT(200, 150, "i64"))),
                         Linalg.matmul(
                             SSA("xy", TensorT(200, 250, "i64")),
                             SSA("z", TensorT(250, 150, "i64")),
                             SSA("xy_z_init", TensorT(200, 150, "i64")),
                             SSA("xy_z", TensorT(200, 150, "i64")),
                         ),
-                        Tensor.empty(SSA("xy_z__w_init", TensorT(200, 10, "i64"))),
+                        Tensor.empty(Vec[SSA].empty(), SSA("xy_z__w_init", TensorT(200, 10, "i64"))),
                         Linalg.matmul(
                             SSA("xy_z", TensorT(200, 150, "i64")),
                             SSA("w", TensorT(150, 10, "i64")),
                             SSA("xy_z__w_init", TensorT(200, 10, "i64")),
                             SSA("xy_z__w", TensorT(200, 10, "i64")),
                         ),
-                        Function.ret(SSA("xy_z__w", TensorT(200, 10, "i64"))),
+                        Func.ret(SSA("xy_z__w", TensorT(200, 10, "i64"))),
                     ),
                     TensorT(200, 10, "i64"),
                 )

@@ -1,9 +1,10 @@
+_Vec_1 = Vec[SSA].empty()
 Region(
     Vec[Block](
         Block(
-            Vec[SSA].empty(),
+            _Vec_1,
             Vec[Operation](
-                Function.func(
+                Func.func(
                     "_40mm",
                     Vec[SSA](
                         SSA("arg0", TensorT(73, 77, "i32")),
@@ -49,149 +50,149 @@ Region(
                         SSA("arg40", TensorT(32, 99, "i32")),
                     ),
                     Vec[Operation](
-                        Tensor.empty(SSA("0", TensorT(73, 99, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("0", TensorT(73, 99, "i32"))),
                         Linalg.matmul(SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 99, "i32")), SSA("0", TensorT(73, 99, "i32")), SSA("1", TensorT(73, 99, "i32"))),
-                        Tensor.empty(SSA("2", TensorT(73, 39, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("2", TensorT(73, 39, "i32"))),
                         Linalg.matmul(SSA("1", TensorT(73, 99, "i32")), SSA("arg2", TensorT(99, 39, "i32")), SSA("2", TensorT(73, 39, "i32")), SSA("3", TensorT(73, 39, "i32"))),
-                        Tensor.empty(SSA("4", TensorT(73, 20, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("4", TensorT(73, 20, "i32"))),
                         Linalg.matmul(SSA("3", TensorT(73, 39, "i32")), SSA("arg3", TensorT(39, 20, "i32")), SSA("4", TensorT(73, 20, "i32")), SSA("5", TensorT(73, 20, "i32"))),
-                        Tensor.empty(SSA("6", TensorT(73, 76, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("6", TensorT(73, 76, "i32"))),
                         Linalg.matmul(SSA("5", TensorT(73, 20, "i32")), SSA("arg4", TensorT(20, 76, "i32")), SSA("6", TensorT(73, 76, "i32")), SSA("7", TensorT(73, 76, "i32"))),
-                        Tensor.empty(SSA("8", TensorT(73, 70, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("8", TensorT(73, 70, "i32"))),
                         Linalg.matmul(SSA("7", TensorT(73, 76, "i32")), SSA("arg5", TensorT(76, 70, "i32")), SSA("8", TensorT(73, 70, "i32")), SSA("9", TensorT(73, 70, "i32"))),
-                        Tensor.empty(SSA("10", TensorT(73, 75, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("10", TensorT(73, 75, "i32"))),
                         Linalg.matmul(SSA("9", TensorT(73, 70, "i32")), SSA("arg6", TensorT(70, 75, "i32")), SSA("10", TensorT(73, 75, "i32")), SSA("11", TensorT(73, 75, "i32"))),
-                        Tensor.empty(SSA("12", TensorT(73, 41, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("12", TensorT(73, 41, "i32"))),
                         Linalg.matmul(SSA("11", TensorT(73, 75, "i32")), SSA("arg7", TensorT(75, 41, "i32")), SSA("12", TensorT(73, 41, "i32")), SSA("13", TensorT(73, 41, "i32"))),
-                        Tensor.empty(SSA("14", TensorT(73, 84, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("14", TensorT(73, 84, "i32"))),
                         Linalg.matmul(SSA("13", TensorT(73, 41, "i32")), SSA("arg8", TensorT(41, 84, "i32")), SSA("14", TensorT(73, 84, "i32")), SSA("15", TensorT(73, 84, "i32"))),
-                        Tensor.empty(SSA("16", TensorT(73, 93, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("16", TensorT(73, 93, "i32"))),
                         Linalg.matmul(SSA("15", TensorT(73, 84, "i32")), SSA("arg9", TensorT(84, 93, "i32")), SSA("16", TensorT(73, 93, "i32")), SSA("17", TensorT(73, 93, "i32"))),
-                        Tensor.empty(SSA("18", TensorT(73, 79, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("18", TensorT(73, 79, "i32"))),
                         Linalg.matmul(
                             SSA("17", TensorT(73, 93, "i32")), SSA("arg10", TensorT(93, 79, "i32")), SSA("18", TensorT(73, 79, "i32")), SSA("19", TensorT(73, 79, "i32"))
                         ),
-                        Tensor.empty(SSA("20", TensorT(73, 61, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("20", TensorT(73, 61, "i32"))),
                         Linalg.matmul(
                             SSA("19", TensorT(73, 79, "i32")), SSA("arg11", TensorT(79, 61, "i32")), SSA("20", TensorT(73, 61, "i32")), SSA("21", TensorT(73, 61, "i32"))
                         ),
-                        Tensor.empty(SSA("22", TensorT(73, 82, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("22", TensorT(73, 82, "i32"))),
                         Linalg.matmul(
                             SSA("21", TensorT(73, 61, "i32")), SSA("arg12", TensorT(61, 82, "i32")), SSA("22", TensorT(73, 82, "i32")), SSA("23", TensorT(73, 82, "i32"))
                         ),
-                        Tensor.empty(SSA("24", TensorT(73, 84, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("24", TensorT(73, 84, "i32"))),
                         Linalg.matmul(
                             SSA("23", TensorT(73, 82, "i32")), SSA("arg13", TensorT(82, 84, "i32")), SSA("24", TensorT(73, 84, "i32")), SSA("25", TensorT(73, 84, "i32"))
                         ),
-                        Tensor.empty(SSA("26", TensorT(73, 46, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("26", TensorT(73, 46, "i32"))),
                         Linalg.matmul(
                             SSA("25", TensorT(73, 84, "i32")), SSA("arg14", TensorT(84, 46, "i32")), SSA("26", TensorT(73, 46, "i32")), SSA("27", TensorT(73, 46, "i32"))
                         ),
-                        Tensor.empty(SSA("28", TensorT(73, 36, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("28", TensorT(73, 36, "i32"))),
                         Linalg.matmul(
                             SSA("27", TensorT(73, 46, "i32")), SSA("arg15", TensorT(46, 36, "i32")), SSA("28", TensorT(73, 36, "i32")), SSA("29", TensorT(73, 36, "i32"))
                         ),
-                        Tensor.empty(SSA("30", TensorT(73, 78, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("30", TensorT(73, 78, "i32"))),
                         Linalg.matmul(
                             SSA("29", TensorT(73, 36, "i32")), SSA("arg16", TensorT(36, 78, "i32")), SSA("30", TensorT(73, 78, "i32")), SSA("31", TensorT(73, 78, "i32"))
                         ),
-                        Tensor.empty(SSA("32", TensorT(73, 44, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("32", TensorT(73, 44, "i32"))),
                         Linalg.matmul(
                             SSA("31", TensorT(73, 78, "i32")), SSA("arg17", TensorT(78, 44, "i32")), SSA("32", TensorT(73, 44, "i32")), SSA("33", TensorT(73, 44, "i32"))
                         ),
-                        Tensor.empty(SSA("34", TensorT(73, 42, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("34", TensorT(73, 42, "i32"))),
                         Linalg.matmul(
                             SSA("33", TensorT(73, 44, "i32")), SSA("arg18", TensorT(44, 42, "i32")), SSA("34", TensorT(73, 42, "i32")), SSA("35", TensorT(73, 42, "i32"))
                         ),
-                        Tensor.empty(SSA("36", TensorT(73, 12, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("36", TensorT(73, 12, "i32"))),
                         Linalg.matmul(
                             SSA("35", TensorT(73, 42, "i32")), SSA("arg19", TensorT(42, 12, "i32")), SSA("36", TensorT(73, 12, "i32")), SSA("37", TensorT(73, 12, "i32"))
                         ),
-                        Tensor.empty(SSA("38", TensorT(73, 77, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("38", TensorT(73, 77, "i32"))),
                         Linalg.matmul(
                             SSA("37", TensorT(73, 12, "i32")), SSA("arg20", TensorT(12, 77, "i32")), SSA("38", TensorT(73, 77, "i32")), SSA("39", TensorT(73, 77, "i32"))
                         ),
-                        Tensor.empty(SSA("40", TensorT(73, 90, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("40", TensorT(73, 90, "i32"))),
                         Linalg.matmul(
                             SSA("39", TensorT(73, 77, "i32")), SSA("arg21", TensorT(77, 90, "i32")), SSA("40", TensorT(73, 90, "i32")), SSA("41", TensorT(73, 90, "i32"))
                         ),
-                        Tensor.empty(SSA("42", TensorT(73, 74, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("42", TensorT(73, 74, "i32"))),
                         Linalg.matmul(
                             SSA("41", TensorT(73, 90, "i32")), SSA("arg22", TensorT(90, 74, "i32")), SSA("42", TensorT(73, 74, "i32")), SSA("43", TensorT(73, 74, "i32"))
                         ),
-                        Tensor.empty(SSA("44", TensorT(73, 72, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("44", TensorT(73, 72, "i32"))),
                         Linalg.matmul(
                             SSA("43", TensorT(73, 74, "i32")), SSA("arg23", TensorT(74, 72, "i32")), SSA("44", TensorT(73, 72, "i32")), SSA("45", TensorT(73, 72, "i32"))
                         ),
-                        Tensor.empty(SSA("46", TensorT(73, 29, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("46", TensorT(73, 29, "i32"))),
                         Linalg.matmul(
                             SSA("45", TensorT(73, 72, "i32")), SSA("arg24", TensorT(72, 29, "i32")), SSA("46", TensorT(73, 29, "i32")), SSA("47", TensorT(73, 29, "i32"))
                         ),
-                        Tensor.empty(SSA("48", TensorT(73, 98, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("48", TensorT(73, 98, "i32"))),
                         Linalg.matmul(
                             SSA("47", TensorT(73, 29, "i32")), SSA("arg25", TensorT(29, 98, "i32")), SSA("48", TensorT(73, 98, "i32")), SSA("49", TensorT(73, 98, "i32"))
                         ),
-                        Tensor.empty(SSA("50", TensorT(73, 65, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("50", TensorT(73, 65, "i32"))),
                         Linalg.matmul(
                             SSA("49", TensorT(73, 98, "i32")), SSA("arg26", TensorT(98, 65, "i32")), SSA("50", TensorT(73, 65, "i32")), SSA("51", TensorT(73, 65, "i32"))
                         ),
-                        Tensor.empty(SSA("52", TensorT(73, 75, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("52", TensorT(73, 75, "i32"))),
                         Linalg.matmul(
                             SSA("51", TensorT(73, 65, "i32")), SSA("arg27", TensorT(65, 75, "i32")), SSA("52", TensorT(73, 75, "i32")), SSA("53", TensorT(73, 75, "i32"))
                         ),
-                        Tensor.empty(SSA("54", TensorT(73, 60, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("54", TensorT(73, 60, "i32"))),
                         Linalg.matmul(
                             SSA("53", TensorT(73, 75, "i32")), SSA("arg28", TensorT(75, 60, "i32")), SSA("54", TensorT(73, 60, "i32")), SSA("55", TensorT(73, 60, "i32"))
                         ),
-                        Tensor.empty(SSA("56", TensorT(73, 33, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("56", TensorT(73, 33, "i32"))),
                         Linalg.matmul(
                             SSA("55", TensorT(73, 60, "i32")), SSA("arg29", TensorT(60, 33, "i32")), SSA("56", TensorT(73, 33, "i32")), SSA("57", TensorT(73, 33, "i32"))
                         ),
-                        Tensor.empty(SSA("58", TensorT(73, 19, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("58", TensorT(73, 19, "i32"))),
                         Linalg.matmul(
                             SSA("57", TensorT(73, 33, "i32")), SSA("arg30", TensorT(33, 19, "i32")), SSA("58", TensorT(73, 19, "i32")), SSA("59", TensorT(73, 19, "i32"))
                         ),
-                        Tensor.empty(SSA("60", TensorT(73, 22, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("60", TensorT(73, 22, "i32"))),
                         Linalg.matmul(
                             SSA("59", TensorT(73, 19, "i32")), SSA("arg31", TensorT(19, 22, "i32")), SSA("60", TensorT(73, 22, "i32")), SSA("61", TensorT(73, 22, "i32"))
                         ),
-                        Tensor.empty(SSA("62", TensorT(73, 34, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("62", TensorT(73, 34, "i32"))),
                         Linalg.matmul(
                             SSA("61", TensorT(73, 22, "i32")), SSA("arg32", TensorT(22, 34, "i32")), SSA("62", TensorT(73, 34, "i32")), SSA("63", TensorT(73, 34, "i32"))
                         ),
-                        Tensor.empty(SSA("64", TensorT(73, 44, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("64", TensorT(73, 44, "i32"))),
                         Linalg.matmul(
                             SSA("63", TensorT(73, 34, "i32")), SSA("arg33", TensorT(34, 44, "i32")), SSA("64", TensorT(73, 44, "i32")), SSA("65", TensorT(73, 44, "i32"))
                         ),
-                        Tensor.empty(SSA("66", TensorT(73, 71, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("66", TensorT(73, 71, "i32"))),
                         Linalg.matmul(
                             SSA("65", TensorT(73, 44, "i32")), SSA("arg34", TensorT(44, 71, "i32")), SSA("66", TensorT(73, 71, "i32")), SSA("67", TensorT(73, 71, "i32"))
                         ),
-                        Tensor.empty(SSA("68", TensorT(73, 41, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("68", TensorT(73, 41, "i32"))),
                         Linalg.matmul(
                             SSA("67", TensorT(73, 71, "i32")), SSA("arg35", TensorT(71, 41, "i32")), SSA("68", TensorT(73, 41, "i32")), SSA("69", TensorT(73, 41, "i32"))
                         ),
-                        Tensor.empty(SSA("70", TensorT(73, 93, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("70", TensorT(73, 93, "i32"))),
                         Linalg.matmul(
                             SSA("69", TensorT(73, 41, "i32")), SSA("arg36", TensorT(41, 93, "i32")), SSA("70", TensorT(73, 93, "i32")), SSA("71", TensorT(73, 93, "i32"))
                         ),
-                        Tensor.empty(SSA("72", TensorT(73, 29, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("72", TensorT(73, 29, "i32"))),
                         Linalg.matmul(
                             SSA("71", TensorT(73, 93, "i32")), SSA("arg37", TensorT(93, 29, "i32")), SSA("72", TensorT(73, 29, "i32")), SSA("73", TensorT(73, 29, "i32"))
                         ),
-                        Tensor.empty(SSA("74", TensorT(73, 86, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("74", TensorT(73, 86, "i32"))),
                         Linalg.matmul(
                             SSA("73", TensorT(73, 29, "i32")), SSA("arg38", TensorT(29, 86, "i32")), SSA("74", TensorT(73, 86, "i32")), SSA("75", TensorT(73, 86, "i32"))
                         ),
-                        Tensor.empty(SSA("76", TensorT(73, 32, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("76", TensorT(73, 32, "i32"))),
                         Linalg.matmul(
                             SSA("75", TensorT(73, 86, "i32")), SSA("arg39", TensorT(86, 32, "i32")), SSA("76", TensorT(73, 32, "i32")), SSA("77", TensorT(73, 32, "i32"))
                         ),
-                        Tensor.empty(SSA("78", TensorT(73, 99, "i32"))),
+                        Tensor.empty(_Vec_1, SSA("78", TensorT(73, 99, "i32"))),
                         Linalg.matmul(
                             SSA("77", TensorT(73, 32, "i32")), SSA("arg40", TensorT(32, 99, "i32")), SSA("78", TensorT(73, 99, "i32")), SSA("79", TensorT(73, 99, "i32"))
                         ),
-                        Function.ret(SSA("79", TensorT(73, 99, "i32"))),
+                        Func.ret(SSA("79", TensorT(73, 99, "i32"))),
                     ),
                     TensorT(73, 99, "i32"),
                 )

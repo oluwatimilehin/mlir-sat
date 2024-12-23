@@ -9,4 +9,5 @@ class Tensor(Expr):
 
     @method()
     @classmethod
-    def empty(self, return_val: SSA) -> Operation: ...
+    # supports args of type 'index'
+    def empty(self, args: Vec[String], return_val: SSA) -> Operation: ...

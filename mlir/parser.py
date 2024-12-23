@@ -1,11 +1,13 @@
-from eggie.enode.base import Operation, TensorT, SSA, Region, Block
-from eggie.enode.function import Function
-from eggie.enode.linalg import Linalg
-from eggie.enode.tensor import Tensor
+from eggie.eclasses.base import Operation, TensorT, SSA, Region, Block
+from eggie.eclasses.arith import Arith
+from eggie.eclasses.func import Func
+from eggie.eclasses.linalg import Linalg
+from eggie.eclasses.tensor import Tensor
 
-from egglog import Vec
+from egglog import Vec, String
 
-from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType
+from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType, IndexType
+from xdsl.dialects.arith import ConstantOp
 from xdsl.dialects.func import FuncOp, ReturnOp
 from xdsl.dialects.linalg import MatmulOp
 from xdsl.dialects.tensor import EmptyOp
@@ -89,7 +91,7 @@ class MLIRParser:
             for op in current_block.ops:
                 ops.append(self._process_op(op))
 
-            blocks.append(Block(Vec[SSA](), Vec[Operation](*ops)))
+            blocks.append(Block(Vec[SSA].empty(), Vec[Operation](*ops)))
             self._ssa_name_getter.reset()
             current_block = current_block.next_block
 
@@ -107,21 +109,27 @@ class MLIRParser:
 
     def _process_op(self, op: IRDLOperation) -> Operation:
         match op.dialect_name():
+            case "arith":
+                return self._process_arith(op)
+            case "func":
+                return self._process_func(op)
             case "linalg":
                 return self._process_linalg(op)
             case "tensor":
                 return self._process_tensor(op)
-            case "func":
-                return self._process_func(op)
             case _:
                 raise ValueError(f"Unsupported dialect for operation: {op}")
 
-    def _process_linalg(self, op: IRDLOperation) -> Operation:
+    def _process_arith(self, op: IRDLOperation) -> Operation:
         match op.name:
-            case MatmulOp.name:
-                return self._process_matmul_op(op)
-            case _:
-                raise ValueError(f"Unsupported linalg operation: {op}")
+            case ConstantOp.name:
+                val = op.value.value.data
+                out_type = str(op.value.type)
+                out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
+                return Arith.constant(val, out_name, out_type)
+
+            case "-":
+                raise ValueError(f"Unsupported arith operation: {op}")
 
     def _process_func(self, op: IRDLOperation) -> Operation:
         match op.name:
@@ -130,16 +138,34 @@ class MLIRParser:
             case ReturnOp.name:
                 return_type = self._to_tensorT(op.arguments.types[0])
                 return_arg = self._ssa_name_getter.get_ssa_name(op.arguments[0])
-                return Function.ret(SSA(return_arg, return_type))
+                return Func.ret(SSA(return_arg, return_type))
             case "_":
                 raise ValueError(f"Unsupported func operation: {op}")
+
+    def _process_linalg(self, op: IRDLOperation) -> Operation:
+        match op.name:
+            case MatmulOp.name:
+                return self._process_matmul_op(op)
+            case _:
+                raise ValueError(f"Unsupported linalg operation: {op}")
 
     def _process_tensor(self, op: IRDLOperation) -> Operation:
         match op.name:
             case EmptyOp.name:
                 op_type = self._to_tensorT(op.tensor.type)
                 op_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-                return Tensor.empty(SSA(op_name, op_type))
+                argsList: List[String] = []
+
+                for operand in op.operands:
+                    if not isinstance(operand.type, IndexType):
+                        raise ValueError(
+                            f"Unsupported type received for tensor.empty operand: {operand.type}"
+                        )
+
+                    argsList.append(String(operand.name_hint))
+
+                args_vec = Vec[String](*argsList) if argsList else Vec[String].empty()
+                return Tensor.empty(args_vec, SSA(op_name, op_type))
             case "_":
                 raise ValueError(f"Unsupported func operation: {op}")
 
@@ -168,11 +194,10 @@ class MLIRParser:
         function_name = func_op.properties["sym_name"].data
 
         function_return_type = self._to_tensorT(func_op.function_type.outputs.data[0])
-        func_op_args = func_op.args
 
         argsVec: List[SSA] = []
 
-        for arg in func_op_args:
+        for arg in func_op.args:
             arg_name = arg.name_hint
             arg_type = arg.type
 
@@ -190,7 +215,7 @@ class MLIRParser:
         for op in block.ops:
             opsVec.append(self._process_op(op))
 
-        return Function.func(
+        return Func.func(
             function_name,
             Vec[SSA](*argsVec),
             Vec[Operation](*opsVec),

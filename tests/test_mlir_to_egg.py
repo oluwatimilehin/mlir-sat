@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def test_mlir_to_egg():
     current_dir = Path(__file__).parent
-    eggs_path = f"{current_dir}/data/egg"
+    eggs_path = f"{current_dir}/data/eggs"
     mlir_path = f"{current_dir}/data/mlir"
 
     mlir_files = [f for f in Path(mlir_path).iterdir()]

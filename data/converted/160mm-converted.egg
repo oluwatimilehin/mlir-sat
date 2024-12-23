@@ -1,10 +1,10 @@
-_Vec_1 = Vec[String].empty()
+_Vec_1 = Vec[SSA].empty()
 _TensorT_1 = TensorT(73, 93, "i32")
 _TensorT_2 = TensorT(73, 71, "i32")
 Region(
     Vec[Block](
         Block(
-            Vec[SSA].empty(),
+            _Vec_1,
             Vec[Operation](
                 Func.func(
                     "_160mm",

@@ -57,6 +57,17 @@ class RegionAST(ExprAST):
 
 
 @dataclass
+class ArithConstantAst(OperationAST):
+    val: int
+    name: str
+    type: str
+
+    def __str__(self) -> str:
+        result = f"%{self.name} = arith.constant {self.val} : {self.type}"
+        return result
+
+
+@dataclass
 class FuncAST(OperationAST):
     name: str
     args: List[SSAExprAST]
@@ -85,10 +96,13 @@ class FuncReturnAST(OperationAST):
 
 @dataclass
 class TensorEmptyAST(OperationAST):
+    args: List[str]
     return_val: SSAExprAST
 
     def __str__(self) -> str:
-        result = f"%{self.return_val.name} = tensor.empty() : {self.return_val.type} \n"
+        args_list = [f"%{arg}" for arg in self.args]
+        args_str = "(" + ", ".join(args_list) + ")"
+        result = f"%{self.return_val.name} = tensor.empty{args_str}: {self.return_val.type} \n"
         return result
 
 

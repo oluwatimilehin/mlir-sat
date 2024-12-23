@@ -3,11 +3,13 @@ from collections import namedtuple
 
 
 class EgglogTokenKind(Enum):
+    ARITH = auto()
     BLOCK = auto()
     COMMA = auto()
     DOT = auto()
     EOF = auto()
-    FUNCTION = auto()
+    EQUALS = auto()
+    FUNC = auto()
     LEFT_PARENTHESIS = auto()
     LEFT_SQUARE_BRACKET = auto()
     LINALG = auto()
@@ -20,13 +22,15 @@ class EgglogTokenKind(Enum):
     STRING_LITERAL = auto()
     TENSOR = auto()
     TENSOR_TYPE = auto()
+    VARIABLE_NAME = auto()
     VEC = auto()
 
 
 dialect_to_token = {
-    "Tensor": EgglogTokenKind.TENSOR,
+    "Arith": EgglogTokenKind.ARITH,
+    "Func": EgglogTokenKind.FUNC,
     "Linalg": EgglogTokenKind.LINALG,
-    "Function": EgglogTokenKind.FUNCTION,
+    "Tensor": EgglogTokenKind.TENSOR,
 }
 chars_to_token = {
     "[": EgglogTokenKind.LEFT_SQUARE_BRACKET,
@@ -35,12 +39,14 @@ chars_to_token = {
     ")": EgglogTokenKind.RIGHT_PARENTHESIS,
     ",": EgglogTokenKind.COMMA,
     ".": EgglogTokenKind.DOT,
+    "=": EgglogTokenKind.EQUALS,
 }
 
 keyword_to_token = {
     "Region": EgglogTokenKind.REGION,
     "Block": EgglogTokenKind.BLOCK,
     "Vec": EgglogTokenKind.VEC,
+    "String": EgglogTokenKind.STRING_LITERAL,
     "SSA": EgglogTokenKind.SSA,
     "Operation": EgglogTokenKind.OPERATION,
     "TensorT": EgglogTokenKind.TENSOR_TYPE,
@@ -107,6 +113,20 @@ class Lexer:
 
             self.index += 1
             return EgglogToken(EgglogTokenKind.STRING_LITERAL, token)
+
+        # Parse a variable name;
+        if char == "_":
+            token = char
+            self.index += 1
+
+            char = self.input[self.index]
+            while char.isalnum() or char == '_':
+                token += char
+                self.index += 1
+                char = self.input[self.index]
+
+            # self.index += 1
+            return EgglogToken(EgglogTokenKind.VARIABLE_NAME, token)
 
         self.index += 1
         if char not in str_to_token:

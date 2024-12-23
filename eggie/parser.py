@@ -1,6 +1,6 @@
 from .ast import *
 from .lexer import *
-from eggie.enode.base import Region
+from eggie.eclasses.base import Region
 import logging
 
 """
@@ -36,9 +36,21 @@ logger = logging.getLogger(__name__)
 class EgglogParser:
     def __init__(self, region: Region):
         self.lexer = Lexer(str(region))
+        self.vars = {}
 
     def parse(self) -> RegionAST:
         token = self.lexer.next_token()
+
+        while token.kind != EgglogTokenKind.REGION:
+            if token.kind != EgglogTokenKind.VARIABLE_NAME:
+                raise ValueError(f"Expected variable name, received {token}")
+
+            variable_name = token.text
+            self._validate(self.lexer.next_token(), EgglogTokenKind.EQUALS)
+
+            self.vars[variable_name] = self._parse_token_(self.lexer.next_token())
+
+            token = self.lexer.next_token()
 
         return self._validate_and_parse(token, EgglogTokenKind.REGION)
 
@@ -47,8 +59,11 @@ class EgglogParser:
             raise ValueError(f"Expected {expected_kind}, received {token}")
 
     def _validate_and_parse(self, token: EgglogToken, expected_kind: EgglogTokenKind):
-        self._validate(token, expected_kind)
+        if token.kind == EgglogTokenKind.VARIABLE_NAME:
+            return self.vars[token.text]
 
+        self._validate(token, expected_kind)
+        
         return self._parse_token_(token)
 
     def _parse_token_(self, token: EgglogToken):
@@ -59,13 +74,15 @@ class EgglogParser:
                 return self._parse_block()
             case EgglogTokenKind.SSA:
                 return self._parse_ssa()
+            case EgglogTokenKind.ARITH:
+                return self._parse_arith()
             case EgglogTokenKind.TENSOR:
                 return self._parse_tensor()
             case EgglogTokenKind.TENSOR_TYPE:
                 return self._parse_tensor_type()
             case EgglogTokenKind.LINALG:
                 return self._parse_linalg()
-            case EgglogTokenKind.FUNCTION:
+            case EgglogTokenKind.FUNC:
                 return self._parse_function()
             case EgglogTokenKind.STRING_LITERAL:
                 return token.text
@@ -163,6 +180,34 @@ class EgglogParser:
 
         return SSAExprAST(name, type)
 
+    # Dialects
+    def _parse_arith(self) -> OperationAST:
+        op = self._get_dialect_operation()
+
+        self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
+
+        val: OperationAST = None
+        match op:
+            case "constant":
+                res = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.INTEGER_LITERAL
+                )
+
+                name = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                )
+
+                type = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                )
+
+                val = ArithConstantAst(res, name, type)
+            case _:
+                raise ValueError(f"Unsupported Tensor operation: {op}")
+
+        self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
+        return val
+
     def _parse_tensor(self) -> OperationAST:
         op = self._get_dialect_operation()
 
@@ -171,10 +216,15 @@ class EgglogParser:
         val: OperationAST = None
         match op:
             case "empty":
-                ssa = self._validate_and_parse(
+                args = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.VEC
+                )
+
+                result = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA
                 )
-                val = TensorEmptyAST(ssa)
+
+                val = TensorEmptyAST(args, result)
             case _:
                 raise ValueError(f"Unsupported Tensor operation: {op}")
 

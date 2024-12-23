@@ -1,15 +1,15 @@
 Region(
     Vec[Block](
         Block(
-            Vec[SSA](),
+            Vec[SSA].empty(),
             Vec[Operation](
-                Function.func(
+                Func.func(
                     "_2mm_small",
                     Vec[SSA](SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32"))),
                     Vec[Operation](
-                        Tensor.empty(SSA("0", TensorT(73, 79, "i32"))),
+                        Tensor.empty(Vec[String].empty(), SSA("0", TensorT(73, 79, "i32"))),
                         Linalg.matmul(SSA("arg0", TensorT(73, 77, "i32")), SSA("arg1", TensorT(77, 79, "i32")), SSA("0", TensorT(73, 79, "i32")), SSA("1", TensorT(73, 79, "i32"))),
-                        Function.ret(SSA("1", TensorT(73, 79, "i32"))),
+                        Func.ret(SSA("1", TensorT(73, 79, "i32"))),
                     ),
                     TensorT(73, 79, "i32"),
                 )
