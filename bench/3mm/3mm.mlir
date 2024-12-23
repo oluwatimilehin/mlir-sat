@@ -43,20 +43,19 @@ func.func @main() -> i32 {
     %z = tensor.cast %z_filled : tensor<?x?xi64> to tensor<250x150xi64>
     %w = tensor.cast %w_filled : tensor<?x?xi64> to tensor<150x10xi64>
 
-    %start = func.call @clock() : () -> i64  // Start measuring time
+    // %start = func.call @clock() : () -> i64  // Start measuring time
     %res = func.call @_3mm(%x, %y, %z, %w) : (tensor<200x175xi64>, tensor<175x250xi64>, tensor<250x150xi64>, tensor<150x10xi64>) -> tensor<200x10xi64>
-    %end = func.call @clock() : () -> i64  // End measuring time
+    // %end = func.call @clock() : () -> i64  // End measuring time
 
     %res_cast = tensor.cast %res : tensor<200x10xi64> to tensor<?x?xi64>
-    func.call @printI64Tensor2D(%res_cast) : (tensor<?x?xi64>) -> ()
-    func.call @printNewline() : () -> ()
-    func.call @displayTime(%start, %end) : (i64, i64) -> ()
+   // func.call @printI64Tensor2D(%res_cast) : (tensor<?x?xi64>) -> ()
+   // func.call @printNewline() : () -> ()
+   // func.call @displayTime(%start, %end) : (i64, i64) -> ()
 
     %c0 = arith.constant 0 : i32
     func.return %c0 : i32
 }
 
-// 2 func, 3 tensor, 3 linalg
 func.func @_3mm(%x: tensor<200x175xi64>, %y: tensor<175x250xi64>, %z: tensor<250x150xi64>, %w: tensor<150x10xi64>) -> tensor<200x10xi64> {
     %xy_init = tensor.empty() : tensor<200x250xi64>
     %xy = linalg.matmul ins(%x, %y : tensor<200x175xi64>, tensor<175x250xi64>) 

@@ -64,11 +64,19 @@ class SSANameGetter:
 
         return name
 
+    def reset(self):
+        self._ssa_names: list[dict[str, int]] = field(
+            default_factory=lambda: [dict()], init=False
+        )
+        self._next_valid_name_id: list[int] = field(
+            default_factory=lambda: [0], init=False
+        )
+
 
 class MLIRParser:
     def __init__(self, module_op: ModuleOp) -> None:
         self._module_op = module_op
-        self.ssa_name_getter = SSANameGetter()
+        self._ssa_name_getter = SSANameGetter()
 
     def parse(self) -> Region:
         blocks: List[Block] = []
@@ -79,11 +87,10 @@ class MLIRParser:
         while current_block is not None:
             ops: List[Operation] = []
             for op in current_block.ops:
-                if isinstance(op, FuncOp):
-                    processed_func = self._process_func_op(op)
-                    ops.append(processed_func)
+                ops.append(self._process_op(op))
 
             blocks.append(Block(Vec[SSA](), Vec[Operation](*ops)))
+            self._ssa_name_getter.reset()
             current_block = current_block.next_block
 
         return Region(Vec[Block](*blocks))
@@ -106,6 +113,8 @@ class MLIRParser:
                 return self._process_tensor(op)
             case "func":
                 return self._process_func(op)
+            case _:
+                raise ValueError(f"Unsupported dialect for operation: {op}")
 
     def _process_linalg(self, op: IRDLOperation) -> Operation:
         match op.name:
@@ -120,7 +129,7 @@ class MLIRParser:
                 return self._process_func_op(op)
             case ReturnOp.name:
                 return_type = self._to_tensorT(op.arguments.types[0])
-                return_arg = self.ssa_name_getter.get_ssa_name(op.arguments[0])
+                return_arg = self._ssa_name_getter.get_ssa_name(op.arguments[0])
                 return Function.ret(SSA(return_arg, return_type))
             case "_":
                 raise ValueError(f"Unsupported func operation: {op}")
@@ -129,7 +138,7 @@ class MLIRParser:
         match op.name:
             case EmptyOp.name:
                 op_type = self._to_tensorT(op.tensor.type)
-                op_name = self.ssa_name_getter.get_ssa_name(op.results[0])
+                op_name = self._ssa_name_getter.get_ssa_name(op.results[0])
                 return Tensor.empty(SSA(op_name, op_type))
             case "_":
                 raise ValueError(f"Unsupported func operation: {op}")
@@ -142,14 +151,14 @@ class MLIRParser:
         egg_outs: List[SSA] = []
 
         for input in inputs:
-            input_name = self.ssa_name_getter.get_ssa_name(input)
+            input_name = self._ssa_name_getter.get_ssa_name(input)
             egg_ins.append(SSA(input_name, self._to_tensorT(input.type)))
 
         for output in outputs:
-            output_name = self.ssa_name_getter.get_ssa_name(output)
+            output_name = self._ssa_name_getter.get_ssa_name(output)
             egg_outs.append(SSA(output_name, self._to_tensorT(output.type)))
 
-        matmul_output_name = self.ssa_name_getter.get_ssa_name(op.results[0])
+        matmul_output_name = self._ssa_name_getter.get_ssa_name(op.results[0])
         matmul_output_type = self._to_tensorT(op.results[0].type)
         matmul_return_val = SSA(matmul_output_name, matmul_output_type)
 
