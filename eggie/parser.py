@@ -135,9 +135,14 @@ class EgglogParser:
             case "integer":
                 return self._parse_integer_type()
             case "index":
-                return IndexTypeAST()
+                return self._parse_index_type()
             case _:
                 raise ValueError(f"Unsupported SSA type: {name}")
+
+    def _parse_index_type(self) -> IndexTypeAST:
+        self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
+        self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
+        return IndexTypeAST()
 
     def _parse_integer_type(self) -> IntegerTypeAST:
         self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
@@ -195,15 +200,11 @@ class EgglogParser:
                     self.lexer.next_token(), EgglogTokenKind.INTEGER_LITERAL
                 )
 
-                name = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
                 )
 
-                type = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
-                )
-
-                val = ArithConstantAst(res, name, type)
+                val = ArithConstantAst(res, SSAExprAST(out.name, out.type))
             case _:
                 raise ValueError(f"Unsupported Tensor operation: {op}")
 
@@ -236,11 +237,11 @@ class EgglogParser:
                 )
 
                 index = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                    self.lexer.next_token(), EgglogTokenKind.SSA
                 )
 
                 out = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                    self.lexer.next_token(), EgglogTokenKind.SSA
                 )
 
                 val = TensorDimAST(source, index, out)
@@ -286,11 +287,8 @@ class EgglogParser:
 
                 val = LinalgMatmulAST(x, y, out, return_val)
             case "fill":
-                input_name = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
-                )
-                input_type = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                scalar = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
                 )
                 out = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA
@@ -298,7 +296,7 @@ class EgglogParser:
                 return_val = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA
                 )
-                val = LinalgFillAST(input_name, input_type, out, return_val)
+                val = LinalgFillAST(scalar, out, return_val)
             case _:
                 raise ValueError(f"Unsupported Linalg operation: {op}")
 
@@ -313,6 +311,21 @@ class EgglogParser:
 
         val: OperationAST = None
         match op:
+            case "call":
+                callee = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                )
+
+                args = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.VEC
+                )
+
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+
+                val = FuncCallAST(callee, args, out)
+
             case "func":
                 name = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL

@@ -1,42 +1,95 @@
+_SSAType_1 = SSAType.tensor(-1, -1, "i64")
 Region(
     Vec[Block](
         Block(
             Vec[SSA].empty(),
             Vec[Operation](
                 Func.func(
+                    "fillI64Tensor2D",
+                    Vec[SSA](SSA("tensor", _SSAType_1)),
+                    Vec[Operation](
+                        Arith.constant(0, SSA("c0", SSAType.index())),
+                        Arith.constant(1, SSA("c1", SSAType.index())),
+                        Tensor.dim(SSA("tensor", _SSAType_1), SSA("c1", SSAType.index()), SSA("cols", SSAType.index())),
+                        Tensor.dim(SSA("tensor", _SSAType_1), SSA("c0", SSAType.index()), SSA("rows", SSAType.index())),
+                        Arith.constant(10, SSA("val", SSAType.integer(64))),
+                        Tensor.empty(Vec[SSA](SSA("rows", SSAType.index()), SSA("cols", SSAType.index())), SSA("init", _SSAType_1)),
+                        Linalg.fill(SSA("val", SSAType.integer(64)), SSA("init", _SSAType_1), SSA("tensor_filled", _SSAType_1)),
+                        Func.ret(SSA("tensor_filled", _SSAType_1)),
+                    ),
+                    _SSAType_1,
+                ),
+                Func.func(
+                    "main",
+                    Vec[SSA](),
+                    Vec[Operation](
+                        Arith.constant(200, SSA("c200", SSAType.index())),
+                        Arith.constant(175, SSA("c175", SSAType.index())),
+                        Arith.constant(250, SSA("c250", SSAType.index())),
+                        Arith.constant(150, SSA("c150", SSAType.index())),
+                        Arith.constant(10, SSA("c10", SSAType.index())),
+                        Tensor.empty(Vec[SSA](SSA("c200", SSAType.index()), SSA("c175", SSAType.index())), SSA("x_cast", _SSAType_1)),
+                        Tensor.empty(Vec[SSA](SSA("c175", SSAType.index()), SSA("c250", SSAType.index())), SSA("y_cast", _SSAType_1)),
+                        Tensor.empty(Vec[SSA](SSA("c250", SSAType.index()), SSA("c150", SSAType.index())), SSA("z_cast", _SSAType_1)),
+                        Tensor.empty(Vec[SSA](SSA("c150", SSAType.index()), SSA("c10", SSAType.index())), SSA("w_cast", _SSAType_1)),
+                        Func.call("@fillRandomI64Tensor2D", Vec[SSA](SSA("x_cast", _SSAType_1)), SSA("x_filled", _SSAType_1)),
+                        Func.call("@fillRandomI64Tensor2D", Vec[SSA](SSA("y_cast", _SSAType_1)), SSA("y_filled", _SSAType_1)),
+                        Func.call("@fillRandomI64Tensor2D", Vec[SSA](SSA("z_cast", _SSAType_1)), SSA("z_filled", _SSAType_1)),
+                        Func.call("@fillRandomI64Tensor2D", Vec[SSA](SSA("w_cast", _SSAType_1)), SSA("w_filled", _SSAType_1)),
+                        Tensor.cast(SSA("x_filled", _SSAType_1), SSAType.tensor(200, 175, "i64"), SSA("x", SSAType.tensor(200, 175, "i64"))),
+                        Tensor.cast(SSA("y_filled", _SSAType_1), SSAType.tensor(175, 250, "i64"), SSA("y", SSAType.tensor(175, 250, "i64"))),
+                        Tensor.cast(SSA("z_filled", _SSAType_1), SSAType.tensor(250, 150, "i64"), SSA("z", SSAType.tensor(250, 150, "i64"))),
+                        Tensor.cast(SSA("w_filled", _SSAType_1), SSAType.tensor(150, 10, "i64"), SSA("w", SSAType.tensor(150, 10, "i64"))),
+                        Func.call(
+                            "@_3mm",
+                            Vec[SSA](
+                                SSA("x", SSAType.tensor(200, 175, "i64")),
+                                SSA("y", SSAType.tensor(175, 250, "i64")),
+                                SSA("z", SSAType.tensor(250, 150, "i64")),
+                                SSA("w", SSAType.tensor(150, 10, "i64")),
+                            ),
+                            SSA("res", SSAType.tensor(200, 10, "i64")),
+                        ),
+                        Tensor.cast(SSA("res", SSAType.tensor(200, 10, "i64")), _SSAType_1, SSA("res_cast", _SSAType_1)),
+                        Arith.constant(0, SSA("c0_1", SSAType.integer(32))),
+                        Func.ret(SSA("c0_1", SSAType.integer(32))),
+                    ),
+                    SSAType.integer(32),
+                ),
+                Func.func(
                     "_3mm",
                     Vec[SSA](
-                        SSA("x", SSAType.tensor(200, 175, "i64")),
-                        SSA("y", SSAType.tensor(175, 250, "i64")),
-                        SSA("z", SSAType.tensor(250, 150, "i64")),
-                        SSA("w", SSAType.tensor(150, 10, "i64")),
+                        SSA("x_1", SSAType.tensor(200, 175, "i64")),
+                        SSA("y_1", SSAType.tensor(175, 250, "i64")),
+                        SSA("z_1", SSAType.tensor(250, 150, "i64")),
+                        SSA("w_1", SSAType.tensor(150, 10, "i64")),
                     ),
                     Vec[Operation](
                         Tensor.empty(Vec[SSA].empty(), SSA("xy_init", SSAType.tensor(200, 250, "i64"))),
                         Linalg.matmul(
-                            SSA("x", SSAType.tensor(200, 175, "i64")),
-                            SSA("y", SSAType.tensor(175, 250, "i64")),
+                            SSA("x_1", SSAType.tensor(200, 175, "i64")),
+                            SSA("y_1", SSAType.tensor(175, 250, "i64")),
                             SSA("xy_init", SSAType.tensor(200, 250, "i64")),
                             SSA("xy", SSAType.tensor(200, 250, "i64")),
                         ),
                         Tensor.empty(Vec[SSA].empty(), SSA("xy_z_init", SSAType.tensor(200, 150, "i64"))),
                         Linalg.matmul(
                             SSA("xy", SSAType.tensor(200, 250, "i64")),
-                            SSA("z", SSAType.tensor(250, 150, "i64")),
+                            SSA("z_1", SSAType.tensor(250, 150, "i64")),
                             SSA("xy_z_init", SSAType.tensor(200, 150, "i64")),
                             SSA("xy_z", SSAType.tensor(200, 150, "i64")),
                         ),
                         Tensor.empty(Vec[SSA].empty(), SSA("xy_z__w_init", SSAType.tensor(200, 10, "i64"))),
                         Linalg.matmul(
                             SSA("xy_z", SSAType.tensor(200, 150, "i64")),
-                            SSA("w", SSAType.tensor(150, 10, "i64")),
+                            SSA("w_1", SSAType.tensor(150, 10, "i64")),
                             SSA("xy_z__w_init", SSAType.tensor(200, 10, "i64")),
                             SSA("xy_z__w", SSAType.tensor(200, 10, "i64")),
                         ),
                         Func.ret(SSA("xy_z__w", SSAType.tensor(200, 10, "i64"))),
                     ),
                     SSAType.tensor(200, 10, "i64"),
-                )
+                ),
             ),
         )
     )

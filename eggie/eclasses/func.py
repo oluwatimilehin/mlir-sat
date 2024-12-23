@@ -9,6 +9,10 @@ class Func(Expr):
 
     @method()
     @classmethod
+    def call(cls, callee: String, args: Vec[SSA], out: SSA) -> Operation: ...
+
+    @method()
+    @classmethod
     def func(
         cls,
         name: StringLike,

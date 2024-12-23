@@ -19,7 +19,9 @@ class TensorTypeAST(ExprTypeAST):
     t: str
 
     def __str__(self) -> str:
-        return f"tensor<{self.i}x{self.j}x{self.t}>"
+        i_str = f"{self.i}" if self.i != -1 else "?"
+        j_str = f"{self.j}" if self.j != -1 else "?"
+        return f"tensor<{i_str}x{j_str}x{self.t}>"
 
 
 @dataclass
@@ -35,7 +37,7 @@ class IndexTypeAST(ExprTypeAST):
     name = "index"
 
     def __str__(self) -> str:
-        return self.name
+        return self.name + "\n"
 
 
 @dataclass
@@ -80,11 +82,10 @@ class RegionAST(ExprAST):
 @dataclass
 class ArithConstantAst(OperationAST):
     val: int
-    name: str
-    type: str
+    out: SSAExprAST
 
     def __str__(self) -> str:
-        result = f"%{self.name} = arith.constant {self.val} : {self.type}"
+        result = f"%{self.out.name} = arith.constant {self.val} : {self.out.type} \n"
         return result
 
 
@@ -107,6 +108,22 @@ class FuncAST(OperationAST):
 
 
 @dataclass
+class FuncCallAST(OperationAST):
+    callee: str
+    args: List[SSAExprAST]
+    out: SSAExprAST
+
+    def __str__(self) -> str:
+        arg_names = [f"%{ssa.name}" for ssa in self.args]
+        args_str = "(" + ", ".join(arg_names) + ")"
+
+        arg_types = [f"{ssa.type}" for ssa in self.args]
+        arg_types_str = "(" + ", ".join(arg_types) + ")"
+        result = f"%{self.out.name} = func.call {self.callee}{args_str} : {arg_types_str} -> {self.out.type} \n"
+        return result
+
+
+@dataclass
 class FuncReturnAST(OperationAST):
     return_val: SSAExprAST
 
@@ -117,13 +134,12 @@ class FuncReturnAST(OperationAST):
 
 @dataclass
 class LinalgFillAST(OperationAST):
-    in_name: str
-    in_type: str
+    scalar: SSAExprAST
     out: SSAExprAST
     return_val: SSAExprAST
 
     def __str__(self) -> str:
-        result = f"%{self.return_val.name} = linalg.fill ins(%{self.in_name} : {self.in_type}) outs(%{self.out.name} : {self.out.type}) -> {self.return_val.type} \n"
+        result = f"%{self.return_val.name} = linalg.fill ins(%{self.scalar.name} : {self.scalar.type}) outs(%{self.out.name} : {self.out.type}) -> {self.return_val.type} \n"
         return result
 
 
@@ -153,21 +169,21 @@ class TensorCastAST(OperationAST):
 @dataclass
 class TensorDimAST(OperationAST):
     source: SSAExprAST
-    index: str
-    out: str
+    index: SSAExprAST
+    out: SSAExprAST
 
     def __str__(self) -> str:
-        result = f"%{self.out} = tensor.dim %{self.source.name}, %{self.index} : {self.source.type} \n"
+        result = f"%{self.out.name} = tensor.dim %{self.source.name}, %{self.index.name} : {self.source.type} \n"
         return result
 
 
 @dataclass
 class TensorEmptyAST(OperationAST):
-    args: List[str]
+    args: List[SSAExprAST]
     return_val: SSAExprAST
 
     def __str__(self) -> str:
-        args_list = [f"%{arg}" for arg in self.args]
+        args_list = [f"%{arg.name}" for arg in self.args]
         args_str = "(" + ", ".join(args_list) + ")"
         result = f"%{self.return_val.name} = tensor.empty{args_str}: {self.return_val.type} \n"
         return result

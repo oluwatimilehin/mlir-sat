@@ -19,12 +19,6 @@ class SSAType(Expr):
     def index(cls) -> SSAType: ...
 
 
-# class TensorT(Expr):
-#     @method()
-#     def __init__(self, i: i64Like, j: i64Like, t: StringLike):
-#         ...
-
-
 class SSA(Expr):
     # todo: we have other non-tensor types like i64, f64, etc.
     @method()

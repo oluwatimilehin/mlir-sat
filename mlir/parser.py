@@ -136,14 +136,16 @@ class MLIRParser:
         match op.name:
             case ConstantOp.name:
                 val = op.value.value.data
-                out_type = str(op.value.type)
+                out_type = self._get_egg_type(op.value.type)
                 out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-                return Arith.constant(val, out_name, out_type)
+                return Arith.constant(val, SSA(out_name, out_type))
             case _:
                 raise ValueError(f"Unsupported arith operation: {op}")
 
     def _process_func(self, op: IRDLOperation) -> Operation:
         match op.name:
+            case CallOp.name:
+                return self._process_call_op(op)
             case FuncOp.name:
                 return self._process_func_op(op)
             case ReturnOp.name:
@@ -191,7 +193,6 @@ class MLIRParser:
 
         index_name = self._ssa_name_getter.get_ssa_name(op.index)
         index_type = self._get_egg_type(op.index.type)
-        print(f"Index type: {index_type}")
 
         out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
         out_type = self._get_egg_type(op.results[0].type)
@@ -215,7 +216,7 @@ class MLIRParser:
 
     def _process_fill_op(self, op: FillOp) -> Operation:
         input_name = self._ssa_name_getter.get_ssa_name(op.inputs[0])
-        input_type = String(str(op.inputs[0].type))
+        input_type = self._get_egg_type(op.inputs[0].type)
 
         output_name = self._ssa_name_getter.get_ssa_name(op.outputs[0])
         output_type = self._get_egg_type(op.outputs[0].type)
@@ -224,8 +225,7 @@ class MLIRParser:
         ret_val_type = self._get_egg_type(op.results[0].type)
 
         return Linalg.fill(
-            input_name,
-            input_type,
+            SSA(input_name, input_type),
             SSA(output_name, output_type),
             SSA(ret_val_name, ret_val_type),
         )
@@ -259,15 +259,10 @@ class MLIRParser:
         argsVec: List[SSA] = []
 
         for arg in func_op.args:
-            arg_name = arg.name_hint
-            arg_type = arg.type
+            arg_name = self._ssa_name_getter.get_ssa_name(arg)
+            arg_type = self._get_egg_type(arg.type)
 
-            if isinstance(arg_type, TensorType):
-                tensor_type: SSAType = self._get_egg_type(arg_type)
-            else:
-                raise ValueError(f"Unsupported argument type: {arg_type}")
-
-            argsVec.append(SSA(arg_name, tensor_type))
+            argsVec.append(SSA(arg_name, arg_type))
 
         opsVec: List[Operation] = []
 
@@ -282,3 +277,19 @@ class MLIRParser:
             Vec[Operation](*opsVec),
             function_return_type,
         )
+
+    def _process_call_op(self, op: CallOp) -> Operation:
+        callee = str(op.callee)
+
+        args: List[SSA] = []
+
+        for arg in op.arguments:
+            arg_name = arg.name_hint
+            arg_type = self._get_egg_type(arg.type)
+
+            args.append(SSA(arg_name, arg_type))
+
+        out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
+        out_type = self._get_egg_type(op.results[0].type)
+
+        return Func.call(callee, Vec[SSA](*args), SSA(out_name, out_type))
