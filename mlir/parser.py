@@ -1,4 +1,4 @@
-from eggie.eclasses.base import Operation, TensorT, SSA, Region, Block
+from eggie.eclasses.base import Operation, SSAType, SSA, Region, Block
 from eggie.eclasses.arith import Arith
 from eggie.eclasses.func import Func
 from eggie.eclasses.linalg import Linalg
@@ -8,9 +8,9 @@ from egglog import Vec, String
 
 from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType, IndexType
 from xdsl.dialects.arith import ConstantOp
-from xdsl.dialects.func import FuncOp, ReturnOp
-from xdsl.dialects.linalg import MatmulOp
-from xdsl.dialects.tensor import EmptyOp
+from xdsl.dialects.func import FuncOp, ReturnOp, CallOp
+from xdsl.dialects.linalg import MatmulOp, FillOp
+from xdsl.dialects.tensor import EmptyOp, DimOp, CastOp
 from xdsl.irdl.operations import IRDLOperation
 from xdsl.ir import SSAValue
 
@@ -97,15 +97,27 @@ class MLIRParser:
 
         return Region(Vec[Block](*blocks))
 
-    def _to_tensorT(self, type: TensorType) -> TensorT:
-        shape = type.get_shape()
-        element_type = type.get_element_type()
+    def _get_egg_type(self, mlir_type) -> SSAType:
+        if isinstance(mlir_type, TensorType):
+            return self._to_egg_tensor_type(mlir_type)
+
+        if isinstance(mlir_type, IntegerType):
+            return SSAType.integer(mlir_type.width.data)
+
+        if isinstance(mlir_type, IndexType):
+            return SSAType.index()
+
+        raise ValueError(f"Unsupported mlir type provided: {mlir_type}")
+
+    def _to_egg_tensor_type(self, tensor_type: TensorType) -> SSAType:
+        shape = tensor_type.get_shape()
+        element_type = tensor_type.get_element_type()
 
         if isinstance(element_type, IntegerType):
             element_type = f"i{element_type.width.data}"
         else:
             raise ValueError(f"Unsupported element type: {element_type}")
-        return TensorT(shape[0], shape[1], element_type)
+        return SSAType.tensor(shape[0], shape[1], element_type)
 
     def _process_op(self, op: IRDLOperation) -> Operation:
         match op.dialect_name():
@@ -127,8 +139,7 @@ class MLIRParser:
                 out_type = str(op.value.type)
                 out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
                 return Arith.constant(val, out_name, out_type)
-
-            case "-":
+            case _:
                 raise ValueError(f"Unsupported arith operation: {op}")
 
     def _process_func(self, op: IRDLOperation) -> Operation:
@@ -136,38 +147,88 @@ class MLIRParser:
             case FuncOp.name:
                 return self._process_func_op(op)
             case ReturnOp.name:
-                return_type = self._to_tensorT(op.arguments.types[0])
+                return_type = self._get_egg_type(op.arguments.types[0])
                 return_arg = self._ssa_name_getter.get_ssa_name(op.arguments[0])
                 return Func.ret(SSA(return_arg, return_type))
-            case "_":
+            case _:
                 raise ValueError(f"Unsupported func operation: {op}")
 
     def _process_linalg(self, op: IRDLOperation) -> Operation:
         match op.name:
             case MatmulOp.name:
                 return self._process_matmul_op(op)
+            case FillOp.name:
+                return self._process_fill_op(op)
             case _:
                 raise ValueError(f"Unsupported linalg operation: {op}")
 
     def _process_tensor(self, op: IRDLOperation) -> Operation:
         match op.name:
             case EmptyOp.name:
-                op_type = self._to_tensorT(op.tensor.type)
-                op_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-                argsList: List[String] = []
+                return self._process_empty_op(op)
+            case DimOp.name:
+                return self._process_dim_op(op)
+            case CastOp.name:
+                return self._process_cast_op(op)
+            case _:
+                raise ValueError(f"Unsupported tensor operation: {op}")
 
-                for operand in op.operands:
-                    if not isinstance(operand.type, IndexType):
-                        raise ValueError(
-                            f"Unsupported type received for tensor.empty operand: {operand.type}"
-                        )
+    # TODO: Would be good to move these to dialect-specific classes
+    def _process_cast_op(self, op: CastOp) -> Operation:
+        source_name = self._ssa_name_getter.get_ssa_name(op.source)
+        source: SSA = SSA(source_name, self._get_egg_type(op.source.type))
 
-                    argsList.append(String(operand.name_hint))
+        dest: SSAType = self._get_egg_type(op.dest.type)
 
-                args_vec = Vec[String](*argsList) if argsList else Vec[String].empty()
-                return Tensor.empty(args_vec, SSA(op_name, op_type))
-            case "_":
-                raise ValueError(f"Unsupported func operation: {op}")
+        out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
+        out_type = self._get_egg_type(op.results[0].type)
+
+        return Tensor.cast(source, dest, SSA(out_name, out_type))
+
+    def _process_dim_op(self, op: DimOp) -> Operation:
+        source_name = self._ssa_name_getter.get_ssa_name(op.source)
+        source_type = self._get_egg_type(op.source.type)
+
+        index_name = self._ssa_name_getter.get_ssa_name(op.index)
+        index_type = self._get_egg_type(op.index.type)
+        print(f"Index type: {index_type}")
+
+        out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
+        out_type = self._get_egg_type(op.results[0].type)
+
+        return Tensor.dim(
+            SSA(source_name, source_type),
+            SSA(index_name, index_type),
+            SSA(out_name, out_type),
+        )
+
+    def _process_empty_op(self, op: EmptyOp) -> Operation:
+        op_type = self._get_egg_type(op.tensor.type)
+        op_name = self._ssa_name_getter.get_ssa_name(op.results[0])
+        argsList: List[SSA] = []
+
+        for operand in op.operands:
+            argsList.append(SSA(operand.name_hint, self._get_egg_type(operand.type)))
+
+        args_vec = Vec[SSA](*argsList) if argsList else Vec[SSA].empty()
+        return Tensor.empty(args_vec, SSA(op_name, op_type))
+
+    def _process_fill_op(self, op: FillOp) -> Operation:
+        input_name = self._ssa_name_getter.get_ssa_name(op.inputs[0])
+        input_type = String(str(op.inputs[0].type))
+
+        output_name = self._ssa_name_getter.get_ssa_name(op.outputs[0])
+        output_type = self._get_egg_type(op.outputs[0].type)
+
+        ret_val_name = self._ssa_name_getter.get_ssa_name(op.results[0])
+        ret_val_type = self._get_egg_type(op.results[0].type)
+
+        return Linalg.fill(
+            input_name,
+            input_type,
+            SSA(output_name, output_type),
+            SSA(ret_val_name, ret_val_type),
+        )
 
     def _process_matmul_op(self, op: MatmulOp) -> Operation:
         inputs = op.inputs
@@ -178,14 +239,14 @@ class MLIRParser:
 
         for input in inputs:
             input_name = self._ssa_name_getter.get_ssa_name(input)
-            egg_ins.append(SSA(input_name, self._to_tensorT(input.type)))
+            egg_ins.append(SSA(input_name, self._get_egg_type(input.type)))
 
         for output in outputs:
             output_name = self._ssa_name_getter.get_ssa_name(output)
-            egg_outs.append(SSA(output_name, self._to_tensorT(output.type)))
+            egg_outs.append(SSA(output_name, self._get_egg_type(output.type)))
 
         matmul_output_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-        matmul_output_type = self._to_tensorT(op.results[0].type)
+        matmul_output_type = self._get_egg_type(op.results[0].type)
         matmul_return_val = SSA(matmul_output_name, matmul_output_type)
 
         return Linalg.matmul(egg_ins[0], egg_ins[1], egg_outs[0], matmul_return_val)
@@ -193,7 +254,7 @@ class MLIRParser:
     def _process_func_op(self, func_op: FuncOp) -> Operation:
         function_name = func_op.properties["sym_name"].data
 
-        function_return_type = self._to_tensorT(func_op.function_type.outputs.data[0])
+        function_return_type = self._get_egg_type(func_op.function_type.outputs.data[0])
 
         argsVec: List[SSA] = []
 
@@ -202,7 +263,7 @@ class MLIRParser:
             arg_type = arg.type
 
             if isinstance(arg_type, TensorType):
-                tensor_type = self._to_tensorT(arg_type)
+                tensor_type: SSAType = self._get_egg_type(arg_type)
             else:
                 raise ValueError(f"Unsupported argument type: {arg_type}")
 

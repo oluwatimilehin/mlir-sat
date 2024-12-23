@@ -14,7 +14,7 @@ class Func(Expr):
         name: StringLike,
         args: Vec[SSA],
         ops: Vec[Operation],
-        return_type: TensorT,
+        return_type: SSAType,
     ) -> Operation: ...
 
     @method()

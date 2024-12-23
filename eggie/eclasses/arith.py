@@ -9,4 +9,6 @@ class Arith(Expr):
 
     @method()
     @classmethod
-    def constant(cls, val: i64Like, name: StringLike, type: StringLike) -> Operation: ...
+    def constant(
+        cls, val: i64Like, name: StringLike, type: StringLike
+    ) -> Operation: ...

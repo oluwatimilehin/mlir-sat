@@ -48,7 +48,6 @@ if __name__ == "__main__":
         file_name = Path(mlir_file).stem
         print(f"Processing mlir: {file_name}")
 
-
         with open(mlir_file) as f:
             mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")
             module_op = mlir_parser.parse_module()

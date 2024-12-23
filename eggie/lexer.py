@@ -21,6 +21,7 @@ class EgglogTokenKind(Enum):
     SSA = auto()
     STRING_LITERAL = auto()
     TENSOR = auto()
+    SSA_TYPE = auto()
     TENSOR_TYPE = auto()
     VARIABLE_NAME = auto()
     VEC = auto()
@@ -49,6 +50,7 @@ keyword_to_token = {
     "String": EgglogTokenKind.STRING_LITERAL,
     "SSA": EgglogTokenKind.SSA,
     "Operation": EgglogTokenKind.OPERATION,
+    "SSAType": EgglogTokenKind.SSA_TYPE,
     "TensorT": EgglogTokenKind.TENSOR_TYPE,
 }
 
@@ -120,7 +122,7 @@ class Lexer:
             self.index += 1
 
             char = self.input[self.index]
-            while char.isalnum() or char == '_':
+            while char.isalnum() or char == "_":
                 token += char
                 self.index += 1
                 char = self.input[self.index]
