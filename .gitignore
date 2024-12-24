@@ -2,3 +2,4 @@
 __init__.py
 tmp*
 **/__pycache__/
+*.txt
