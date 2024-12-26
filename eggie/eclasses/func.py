@@ -14,11 +14,7 @@ class Func(Expr):
     @method()
     @classmethod
     def func(
-        cls,
-        name: StringLike,
-        args: Vec[SSA],
-        ops: Vec[Operation],
-        return_type: SSAType,
+        cls, name: StringLike, args: Vec[SSA], ops: Vec[Operation], return_type: SSAType
     ) -> Operation: ...
 
     @method()

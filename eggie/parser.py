@@ -58,6 +58,8 @@ class EgglogParser:
                 return self._parse_linalg()
             case EgglogTokenKind.FUNC:
                 return self._parse_function()
+            case EgglogTokenKind.PRINTF:
+                return self._parse_printf()
             case EgglogTokenKind.STRING_LITERAL:
                 return token.text
             case EgglogTokenKind.INTEGER_LITERAL:
@@ -257,6 +259,29 @@ class EgglogParser:
                 val = TensorEmptyAST(args, result)
             case _:
                 raise ValueError(f"Unsupported Tensor operation: {op}")
+
+        self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
+        return val
+
+    def _parse_printf(self) -> OperationAST:
+        op = self._get_class_fn()
+
+        self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
+
+        val: OperationAST = None
+
+        match op:
+            case "print_format":
+                format_str = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+                )
+                format_vals = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.VEC
+                )
+
+                val = PrintFormatAST(format_str, format_vals)
+            case _:
+                raise ValueError(f"Unsupported Printf operation: {op}")
 
         self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
         return val

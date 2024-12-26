@@ -156,6 +156,21 @@ class LinalgMatmulAST(OperationAST):
 
 
 @dataclass
+class PrintFormatAST(OperationAST):
+    format_str: str
+    vals: List[SSAExprAST]
+
+    def __str__(self) -> str:
+        result = f'printf.print_format "{self.format_str}"'
+        vals_str = "," + ",".join([f"%{val.name}" for val in self.vals])
+
+        if self.vals:
+            result += vals_str
+        result += "\n"
+        return result
+
+
+@dataclass
 class TensorCastAST(OperationAST):
     source: SSAExprAST
     dest: TensorTypeAST

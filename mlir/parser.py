@@ -3,6 +3,7 @@ from eggie.eclasses.arith import Arith
 from eggie.eclasses.func import Func
 from eggie.eclasses.linalg import Linalg
 from eggie.eclasses.tensor import Tensor
+from eggie.eclasses.printf import Printf
 
 from egglog import Vec, String
 
@@ -11,6 +12,7 @@ from xdsl.dialects.arith import ConstantOp
 from xdsl.dialects.func import FuncOp, ReturnOp, CallOp
 from xdsl.dialects.linalg import MatmulOp, FillOp
 from xdsl.dialects.tensor import EmptyOp, DimOp, CastOp
+from xdsl.dialects.printf import PrintFormatOp
 from xdsl.irdl.operations import IRDLOperation
 from xdsl.ir import SSAValue
 
@@ -129,6 +131,8 @@ class MLIRParser:
                 return self._process_linalg(op)
             case "tensor":
                 return self._process_tensor(op)
+            case "printf":
+                return self._process_print(op)
             case _:
                 raise ValueError(f"Unsupported dialect for operation: {op}")
 
@@ -174,6 +178,21 @@ class MLIRParser:
                 return self._process_cast_op(op)
             case _:
                 raise ValueError(f"Unsupported tensor operation: {op}")
+
+    def _process_print(self, op: IRDLOperation) -> Operation:
+        match op.name:
+            case PrintFormatOp.name:
+                format_str = str(op.format_str).strip('"')
+                print(f"string: {format_str}")
+                vals_list = []
+                for op in op.operands:
+                    vals_list.append(SSA(op.name_hint, self._get_egg_type(op.type)))
+
+                vals_vec = Vec[SSA](*vals_list) if vals_list else Vec[SSA].empty()
+
+                return Printf.print_format(format_str, vals_vec)
+            case _:
+                raise ValueError(f"Unsupported printf operation: {op}")
 
     # TODO: Would be good to move these to dialect-specific classes
     def _process_cast_op(self, op: CastOp) -> Operation:

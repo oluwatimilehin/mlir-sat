@@ -15,6 +15,7 @@ class EgglogTokenKind(Enum):
     LINALG = auto()
     INTEGER_LITERAL = auto()
     OPERATION = auto()
+    PRINTF = auto()
     REGION = auto()
     RIGHT_PARENTHESIS = auto()
     RIGHT_SQUARE_BRACKET = auto()
@@ -22,7 +23,6 @@ class EgglogTokenKind(Enum):
     STRING_LITERAL = auto()
     TENSOR = auto()
     SSA_TYPE = auto()
-    TENSOR_TYPE = auto()
     VARIABLE_NAME = auto()
     VEC = auto()
 
@@ -32,6 +32,7 @@ dialect_to_token = {
     "Func": EgglogTokenKind.FUNC,
     "Linalg": EgglogTokenKind.LINALG,
     "Tensor": EgglogTokenKind.TENSOR,
+    "Printf": EgglogTokenKind.PRINTF,
 }
 chars_to_token = {
     "[": EgglogTokenKind.LEFT_SQUARE_BRACKET,
@@ -51,7 +52,6 @@ keyword_to_token = {
     "SSA": EgglogTokenKind.SSA,
     "Operation": EgglogTokenKind.OPERATION,
     "SSAType": EgglogTokenKind.SSA_TYPE,
-    "TensorT": EgglogTokenKind.TENSOR_TYPE,
 }
 
 
@@ -96,7 +96,7 @@ class Lexer:
                 self.index += 1
                 char = self.input[self.index]
 
-            while char.isalnum():
+            while char not in chars_to_token:
                 token += char
                 self.index += 1
                 char = self.input[self.index]
