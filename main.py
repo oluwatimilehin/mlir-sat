@@ -69,14 +69,8 @@ if __name__ == "__main__":
                 printer = Printer(stream=f)
                 printer.print(converted_module_op)
 
-            # assert module_op.is_structurally_equivalent(converted_module_op)
+            assert module_op.is_structurally_equivalent(converted_module_op)
 
             converted_egg_file = f"{converted_path}/{file_name}-converted.egg"
-            # converted_mlir_file = f"{converted_path}/{file_name}-converted.mlir"
-
-            # with open(converted_mlir_file, "w") as f:
-            #     printer = Printer(stream=f)
-            #     printer.print(converted_module_op)
-
             with open(converted_egg_file, "w") as f:
                 f.write(str(extracted))
