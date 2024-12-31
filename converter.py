@@ -1,4 +1,4 @@
-from eggie.eclasses.base import Region
+from eggie.enodes.base import Region
 from eggie.parser import EgglogParser
 
 from mlir.parser import MLIRParser

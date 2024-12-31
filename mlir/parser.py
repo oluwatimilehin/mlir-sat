@@ -1,11 +1,5 @@
-from eggie.eclasses.base import Operation, SSAType, SSA, Region, Block
-from eggie.eclasses.arith import Arith
-from eggie.eclasses.func import Func
-from eggie.eclasses.linalg import Linalg
-from eggie.eclasses.tensor import Tensor
-from eggie.eclasses.printf import Printf
-
-from egglog import Vec, String
+from dataclasses import dataclass, field
+from typing import List, Tuple
 
 from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType, IndexType
 from xdsl.dialects.arith import ConstantOp
@@ -16,9 +10,14 @@ from xdsl.dialects.printf import PrintFormatOp
 from xdsl.irdl.operations import IRDLOperation
 from xdsl.ir import SSAValue
 
+from egglog import Vec, String
 
-from dataclasses import dataclass, field
-from typing import List
+from eggie.enodes.base import Operation, SSAType, SSA, Region, Block
+from eggie.enodes.arith import Arith
+from eggie.enodes.func import Func
+from eggie.enodes.linalg import Linalg
+from eggie.enodes.tensor import Tensor
+from eggie.enodes.printf import Printf
 
 
 @dataclass(eq=False, repr=False)
@@ -45,7 +44,7 @@ class SSANameGetter:
         self._next_valid_name_id[-1] += 1
         return str(self._next_valid_name_id[-1] - 1)
 
-    def get_ssa_name(self, value: SSAValue):
+    def get_name(self, value: SSAValue):
         """
         Get an SSA value. This assigns a name to the value if the value
         does not have one in the current context.
@@ -77,29 +76,42 @@ class SSANameGetter:
         )
 
 
-class MLIRParser:
-    def __init__(self, module_op: ModuleOp) -> None:
-        self._module_op = module_op
+class BlockSSAManager:
+    # TODO: I don't like the design of this class or how it's being used, but it'll work for now
+    def __init__(self) -> None:
+        self._ssa_name_to_val = {}
+        self._ssa_is_standalone = {}
         self._ssa_name_getter = SSANameGetter()
 
-    def parse(self) -> Region:
-        blocks: List[Block] = []
+    def insert(self, name: str, val: SSA):
+        if name in self._ssa_name_to_val:
+            raise ValueError(
+                f"Name {name} already exists in map: {self._ssa_name_to_val}. Attempting to provide value: {val}"
+            )
 
-        region = self._module_op.body
-        current_block = region.blocks.first
+        self._ssa_name_to_val[name] = val
+        self._ssa_is_standalone[name] = True
 
-        while current_block is not None:
-            ops: List[Operation] = []
-            for op in current_block.ops:
-                ops.append(self._process_op(op))
+    def get(self, val) -> Tuple[str, SSA]:
+        # TODO: I don't like that this returns a tuple
+        name = self._ssa_name_getter.get_name(val)
+        type = self.get_egg_type(val.type)
 
-            blocks.append(Block(Vec[SSA].empty(), Vec[Operation](*ops)))
-            self._ssa_name_getter.reset()
-            current_block = current_block.next_block
+        if name in self._ssa_name_to_val:
+            self._ssa_is_standalone[name] = False
+            return name, self._ssa_name_to_val[name]
 
-        return Region(Vec[Block](*blocks))
+        return name, SSA(name, type)
 
-    def _get_egg_type(self, mlir_type) -> SSAType:
+    def get_standalone_ops(self) -> SSA:
+        res: List[SSA] = []
+        for name, is_standalone in self._ssa_is_standalone.items():
+            if is_standalone:
+                res.append(self._ssa_name_to_val[name])
+
+        return res
+
+    def get_egg_type(self, mlir_type) -> SSAType:
         if isinstance(mlir_type, TensorType):
             return self._to_egg_tensor_type(mlir_type)
 
@@ -121,6 +133,33 @@ class MLIRParser:
             raise ValueError(f"Unsupported element type: {element_type}")
         return SSAType.tensor(shape[0], shape[1], element_type)
 
+    def reset(self):
+        self._ssa_name_to_val.clear()
+        self._ssa_name_getter.reset()
+
+
+class MLIRParser:
+    def __init__(self, module_op: ModuleOp) -> None:
+        self._module_op = module_op
+        self._block_ssa_manager = None
+
+    def parse(self) -> Region:
+        blocks: List[Block] = []
+
+        region = self._module_op.body
+        current_block = region.blocks.first
+
+        while current_block is not None:
+            ops: List[SSA] = []
+            for op in current_block.ops:
+                ops.append(self._process_op(op))
+
+            blocks.append(Block(Vec[SSA].empty(), Vec[SSA](*ops)))
+            self._block_ssa_manager.reset()
+            current_block = current_block.next_block
+
+        return Region(Vec[Block](*blocks))
+
     def _process_op(self, op: IRDLOperation) -> Operation:
         match op.dialect_name():
             case "arith":
@@ -136,30 +175,36 @@ class MLIRParser:
             case _:
                 raise ValueError(f"Unsupported dialect for operation: {op}")
 
-    def _process_arith(self, op: IRDLOperation) -> Operation:
+    def _process_arith(self, op: IRDLOperation) -> SSA:
         match op.name:
             case ConstantOp.name:
                 val = op.value.value.data
-                out_type = self._get_egg_type(op.value.type)
-                out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-                return Arith.constant(val, SSA(out_name, out_type))
+                name, out = self._block_ssa_manager.get(op.results[0])
+
+                res = Arith.constant(val, out)
+                self._block_ssa_manager.insert(name, res)
+                return res
             case _:
                 raise ValueError(f"Unsupported arith operation: {op}")
 
-    def _process_func(self, op: IRDLOperation) -> Operation:
+    def _process_func(self, op: IRDLOperation) -> SSA:
         match op.name:
             case CallOp.name:
                 return self._process_call_op(op)
             case FuncOp.name:
                 return self._process_func_op(op)
             case ReturnOp.name:
-                return_type = self._get_egg_type(op.arguments.types[0])
-                return_arg = self._ssa_name_getter.get_ssa_name(op.arguments[0])
-                return Func.ret(SSA(return_arg, return_type))
+                _, return_val = self._block_ssa_manager.get(op.arguments[0])
+                res = Func.ret(
+                    return_val,
+                    self._block_ssa_manager.get_egg_type(op.arguments.types[0]),
+                )
+                self._block_ssa_manager.insert("func.ret", res)
+                return res
             case _:
                 raise ValueError(f"Unsupported func operation: {op}")
 
-    def _process_linalg(self, op: IRDLOperation) -> Operation:
+    def _process_linalg(self, op: IRDLOperation) -> SSA:
         match op.name:
             case MatmulOp.name:
                 return self._process_matmul_op(op)
@@ -168,7 +213,7 @@ class MLIRParser:
             case _:
                 raise ValueError(f"Unsupported linalg operation: {op}")
 
-    def _process_tensor(self, op: IRDLOperation) -> Operation:
+    def _process_tensor(self, op: IRDLOperation) -> SSA:
         match op.name:
             case EmptyOp.name:
                 return self._process_empty_op(op)
@@ -179,14 +224,13 @@ class MLIRParser:
             case _:
                 raise ValueError(f"Unsupported tensor operation: {op}")
 
-    def _process_print(self, op: IRDLOperation) -> Operation:
+    def _process_print(self, op: IRDLOperation) -> SSA:
         match op.name:
             case PrintFormatOp.name:
                 format_str = str(op.format_str).strip('"')
-                print(f"string: {format_str}")
                 vals_list = []
                 for op in op.operands:
-                    vals_list.append(SSA(op.name_hint, self._get_egg_type(op.type)))
+                    vals_list.append(self._block_ssa_manager.get(op[1]))
 
                 vals_vec = Vec[SSA](*vals_list) if vals_list else Vec[SSA].empty()
 
@@ -195,61 +239,55 @@ class MLIRParser:
                 raise ValueError(f"Unsupported printf operation: {op}")
 
     # TODO: Would be good to move these to dialect-specific classes
-    def _process_cast_op(self, op: CastOp) -> Operation:
-        source_name = self._ssa_name_getter.get_ssa_name(op.source)
-        source: SSA = SSA(source_name, self._get_egg_type(op.source.type))
+    def _process_cast_op(self, op: CastOp) -> SSA:
+        _, source = self._block_ssa_manager.get(op.source)
 
-        dest: SSAType = self._get_egg_type(op.dest.type)
+        dest: SSAType = self._block_ssa_manager.get_egg_type(op.dest.type)
 
-        out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-        out_type = self._get_egg_type(op.results[0].type)
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Tensor.cast(source, dest, out)
 
-        return Tensor.cast(source, dest, SSA(out_name, out_type))
+        self._block_ssa_manager.insert(name, res)
+        return res
 
-    def _process_dim_op(self, op: DimOp) -> Operation:
-        source_name = self._ssa_name_getter.get_ssa_name(op.source)
-        source_type = self._get_egg_type(op.source.type)
+    def _process_dim_op(self, op: DimOp) -> SSA:
+        _, source = self._block_ssa_manager.get(op.source)
+        _, index = self._block_ssa_manager.get(op.index)
+        name, out = self._block_ssa_manager.get(op.results[0])
 
-        index_name = self._ssa_name_getter.get_ssa_name(op.index)
-        index_type = self._get_egg_type(op.index.type)
-
-        out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-        out_type = self._get_egg_type(op.results[0].type)
-
-        return Tensor.dim(
-            SSA(source_name, source_type),
-            SSA(index_name, index_type),
-            SSA(out_name, out_type),
+        res = Tensor.dim(
+            source,
+            index,
+            out,
         )
 
-    def _process_empty_op(self, op: EmptyOp) -> Operation:
-        op_type = self._get_egg_type(op.tensor.type)
-        op_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-        argsList: List[SSA] = []
+        self._block_ssa_manager.insert(name, res)
+        return res
 
+    def _process_empty_op(self, op: EmptyOp) -> SSA:
+        argsList: List[SSA] = []
         for operand in op.operands:
-            argsList.append(SSA(operand.name_hint, self._get_egg_type(operand.type)))
+            argsList.append(self._block_ssa_manager.get(operand)[1])
 
         args_vec = Vec[SSA](*argsList) if argsList else Vec[SSA].empty()
-        return Tensor.empty(args_vec, SSA(op_name, op_type))
+        name, out = self._block_ssa_manager.get(op.results[0])
 
-    def _process_fill_op(self, op: FillOp) -> Operation:
-        input_name = self._ssa_name_getter.get_ssa_name(op.inputs[0])
-        input_type = self._get_egg_type(op.inputs[0].type)
+        res = Tensor.empty(args_vec, out)
+        self._block_ssa_manager.insert(name, res)
+        return res
 
-        output_name = self._ssa_name_getter.get_ssa_name(op.outputs[0])
-        output_type = self._get_egg_type(op.outputs[0].type)
+    def _process_fill_op(self, op: FillOp) -> SSA:
+        _, input = self._block_ssa_manager.get(op.inputs[0])
 
-        ret_val_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-        ret_val_type = self._get_egg_type(op.results[0].type)
+        _, dest = self._block_ssa_manager.get(op.outputs[0])
 
-        return Linalg.fill(
-            SSA(input_name, input_type),
-            SSA(output_name, output_type),
-            SSA(ret_val_name, ret_val_type),
-        )
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Linalg.fill(input, dest, out)
 
-    def _process_matmul_op(self, op: MatmulOp) -> Operation:
+        self._block_ssa_manager.insert(name, res)
+        return res
+
+    def _process_matmul_op(self, op: MatmulOp) -> SSA:
         inputs = op.inputs
         outputs = op.outputs
 
@@ -257,58 +295,56 @@ class MLIRParser:
         egg_outs: List[SSA] = []
 
         for input in inputs:
-            input_name = self._ssa_name_getter.get_ssa_name(input)
-            egg_ins.append(SSA(input_name, self._get_egg_type(input.type)))
+            egg_ins.append(self._block_ssa_manager.get(input)[1])
 
         for output in outputs:
-            output_name = self._ssa_name_getter.get_ssa_name(output)
-            egg_outs.append(SSA(output_name, self._get_egg_type(output.type)))
+            egg_outs.append(self._block_ssa_manager.get(output)[1])
 
-        matmul_output_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-        matmul_output_type = self._get_egg_type(op.results[0].type)
-        matmul_return_val = SSA(matmul_output_name, matmul_output_type)
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Linalg.matmul(egg_ins[0], egg_ins[1], egg_outs[0], out)
 
-        return Linalg.matmul(egg_ins[0], egg_ins[1], egg_outs[0], matmul_return_val)
+        self._block_ssa_manager.insert(name, res)
+        return res
 
-    def _process_func_op(self, func_op: FuncOp) -> Operation:
+    def _process_func_op(self, func_op: FuncOp) -> SSA:
+        self._block_ssa_manager = BlockSSAManager()
         function_name = func_op.properties["sym_name"].data
 
-        function_return_type = self._get_egg_type(func_op.function_type.outputs.data[0])
+        function_return_type = self._block_ssa_manager.get_egg_type(
+            func_op.function_type.outputs.data[0]
+        )
 
         argsVec: List[SSA] = []
 
         for arg in func_op.args:
-            arg_name = self._ssa_name_getter.get_ssa_name(arg)
-            arg_type = self._get_egg_type(arg.type)
-
-            argsVec.append(SSA(arg_name, arg_type))
-
-        opsVec: List[Operation] = []
+            argsVec.append(self._block_ssa_manager.get(arg)[1])
 
         # Sample programs are in the form of a region with a single block
         block = func_op.regions[0].blocks.first
         for op in block.ops:
-            opsVec.append(self._process_op(op))
+            self._process_op(op)
 
+        opsVec: List[SSA] = self._block_ssa_manager.get_standalone_ops()
+
+        self._block_ssa_manager.reset()
         return Func.func(
             function_name,
             Vec[SSA](*argsVec),
-            Vec[Operation](*opsVec),
+            Vec[SSA](*opsVec),
             function_return_type,
         )
 
-    def _process_call_op(self, op: CallOp) -> Operation:
+    def _process_call_op(self, op: CallOp) -> SSA:
         callee = str(op.callee)
 
         args: List[SSA] = []
 
         for arg in op.arguments:
-            arg_name = arg.name_hint
-            arg_type = self._get_egg_type(arg.type)
+            args.append(self._block_ssa_manager.get(arg)[1])
 
-            args.append(SSA(arg_name, arg_type))
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Func.call(callee, Vec[SSA](*args), out)
 
-        out_name = self._ssa_name_getter.get_ssa_name(op.results[0])
-        out_type = self._get_egg_type(op.results[0].type)
+        self._block_ssa_manager.insert(name, res)
 
-        return Func.call(callee, Vec[SSA](*args), SSA(out_name, out_type))
+        return res
