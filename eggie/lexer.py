@@ -20,6 +20,7 @@ class EgglogTokenKind(Enum):
     RIGHT_PARENTHESIS = auto()
     RIGHT_SQUARE_BRACKET = auto()
     SSA = auto()
+    SSA_LITERAL = auto()
     STRING_LITERAL = auto()
     TENSOR = auto()
     SSA_TYPE = auto()
@@ -50,6 +51,7 @@ keyword_to_token = {
     "Vec": EgglogTokenKind.VEC,
     "String": EgglogTokenKind.STRING_LITERAL,
     "SSA": EgglogTokenKind.SSA,
+    "SSALiteral": EgglogTokenKind.SSA_LITERAL,
     "Operation": EgglogTokenKind.OPERATION,
     "SSAType": EgglogTokenKind.SSA_TYPE,
 }
@@ -63,7 +65,7 @@ class Lexer:
     def __init__(self, input: str):
         self.input = input
         self.index = 0
-
+    
     @classmethod
     def is_keyword(cls, token: EgglogToken) -> bool:
         return keyword_to_token.get(token.text) != None

@@ -1,4 +1,7 @@
 _SSAType_1 = SSAType.tensor(-1, -1, "i64")
+_SSA_1 = SSALiteral.value("x", SSAType.tensor(100, 10, "i64"))
+_SSA_2 = SSALiteral.value("y", SSAType.tensor(10, 150, "i64"))
+_SSA_3 = SSALiteral.value("z", SSAType.tensor(150, 8, "i64"))
 Region(
     Vec[Block](
         Block(
@@ -6,19 +9,27 @@ Region(
             Vec[SSA](
                 Func.func(
                     "fillI64Tensor2D",
-                    Vec[SSA](SSA("tensor", _SSAType_1)),
+                    Vec[SSA](SSALiteral.value("tensor", _SSAType_1)),
                     Vec[SSA](
                         Func.ret(
                             Linalg.fill(
-                                Arith.constant(10, SSA("val", SSAType.integer(64))),
+                                Arith.constant(10, SSALiteral.value("val", SSAType.integer(64))),
                                 Tensor.empty(
                                     Vec[SSA](
-                                        Tensor.dim(SSA("tensor", _SSAType_1), Arith.constant(0, SSA("c0", SSAType.index())), SSA("rows", SSAType.index())),
-                                        Tensor.dim(SSA("tensor", _SSAType_1), Arith.constant(1, SSA("c1", SSAType.index())), SSA("cols", SSAType.index())),
+                                        Tensor.dim(
+                                            SSALiteral.value("tensor", _SSAType_1),
+                                            Arith.constant(0, SSALiteral.value("c0", SSAType.index())),
+                                            SSALiteral.value("rows", SSAType.index()),
+                                        ),
+                                        Tensor.dim(
+                                            SSALiteral.value("tensor", _SSAType_1),
+                                            Arith.constant(1, SSALiteral.value("c1", SSAType.index())),
+                                            SSALiteral.value("cols", SSAType.index()),
+                                        ),
                                     ),
-                                    SSA("init", _SSAType_1),
+                                    SSALiteral.value("init", _SSAType_1),
                                 ),
-                                SSA("tensor_filled", _SSAType_1),
+                                SSALiteral.value("tensor_filled", _SSAType_1),
                             ),
                             _SSAType_1,
                         )
@@ -38,68 +49,74 @@ Region(
                                             "@fillI64Tensor2D",
                                             Vec[SSA](
                                                 Tensor.empty(
-                                                    Vec[SSA](Arith.constant(100, SSA("c100", SSAType.index())), Arith.constant(10, SSA("c10", SSAType.index()))),
-                                                    SSA("x_cast", _SSAType_1),
+                                                    Vec[SSA](
+                                                        Arith.constant(100, SSALiteral.value("c100", SSAType.index())), Arith.constant(10, SSALiteral.value("c10", SSAType.index()))
+                                                    ),
+                                                    SSALiteral.value("x_cast", _SSAType_1),
                                                 )
                                             ),
-                                            SSA("x_filled", _SSAType_1),
+                                            SSALiteral.value("x_filled", _SSAType_1),
                                         ),
                                         SSAType.tensor(100, 10, "i64"),
-                                        SSA("x", SSAType.tensor(100, 10, "i64")),
+                                        _SSA_1,
                                     ),
                                     Tensor.cast(
                                         Func.call(
                                             "@fillI64Tensor2D",
                                             Vec[SSA](
                                                 Tensor.empty(
-                                                    Vec[SSA](Arith.constant(10, SSA("c10", SSAType.index())), Arith.constant(150, SSA("c150", SSAType.index()))),
-                                                    SSA("y_cast", _SSAType_1),
+                                                    Vec[SSA](
+                                                        Arith.constant(10, SSALiteral.value("c10", SSAType.index())), Arith.constant(150, SSALiteral.value("c150", SSAType.index()))
+                                                    ),
+                                                    SSALiteral.value("y_cast", _SSAType_1),
                                                 )
                                             ),
-                                            SSA("y_filled", _SSAType_1),
+                                            SSALiteral.value("y_filled", _SSAType_1),
                                         ),
                                         SSAType.tensor(10, 150, "i64"),
-                                        SSA("y", SSAType.tensor(10, 150, "i64")),
+                                        _SSA_2,
                                     ),
                                     Tensor.cast(
                                         Func.call(
                                             "@fillI64Tensor2D",
                                             Vec[SSA](
                                                 Tensor.empty(
-                                                    Vec[SSA](Arith.constant(150, SSA("c150", SSAType.index())), Arith.constant(8, SSA("c8", SSAType.index()))),
-                                                    SSA("z_cast", _SSAType_1),
+                                                    Vec[SSA](
+                                                        Arith.constant(150, SSALiteral.value("c150", SSAType.index())), Arith.constant(8, SSALiteral.value("c8", SSAType.index()))
+                                                    ),
+                                                    SSALiteral.value("z_cast", _SSAType_1),
                                                 )
                                             ),
-                                            SSA("z_filled", _SSAType_1),
+                                            SSALiteral.value("z_filled", _SSAType_1),
                                         ),
                                         SSAType.tensor(150, 8, "i64"),
-                                        SSA("z", SSAType.tensor(150, 8, "i64")),
+                                        _SSA_3,
                                     ),
                                 ),
-                                SSA("res", SSAType.tensor(100, 8, "i64")),
+                                SSALiteral.value("res", SSAType.tensor(100, 8, "i64")),
                             ),
                             _SSAType_1,
-                            SSA("res_cast", _SSAType_1),
+                            SSALiteral.value("res_cast", _SSAType_1),
                         ),
-                        Func.ret(Arith.constant(0, SSA("c0", SSAType.integer(32))), SSAType.integer(32)),
+                        Func.ret(Arith.constant(0, SSALiteral.value("c0", SSAType.integer(32))), SSAType.integer(32)),
                     ),
                     SSAType.integer(32),
                 ),
                 Func.func(
                     "_2mm",
-                    Vec[SSA](SSA("x", SSAType.tensor(100, 10, "i64")), SSA("y", SSAType.tensor(10, 150, "i64")), SSA("z", SSAType.tensor(150, 8, "i64"))),
+                    Vec[SSA](_SSA_1, _SSA_2, _SSA_3),
                     Vec[SSA](
                         Func.ret(
                             Linalg.matmul(
                                 Linalg.matmul(
-                                    SSA("x", SSAType.tensor(100, 10, "i64")),
-                                    SSA("y", SSAType.tensor(10, 150, "i64")),
-                                    Tensor.empty(Vec[SSA].empty(), SSA("xy_init", SSAType.tensor(100, 150, "i64"))),
-                                    SSA("xy", SSAType.tensor(100, 150, "i64")),
+                                    _SSA_1,
+                                    _SSA_2,
+                                    Tensor.empty(Vec[SSA].empty(), SSALiteral.value("xy_init", SSAType.tensor(100, 150, "i64"))),
+                                    SSALiteral.value("xy", SSAType.tensor(100, 150, "i64")),
                                 ),
-                                SSA("z", SSAType.tensor(150, 8, "i64")),
-                                Tensor.empty(Vec[SSA].empty(), SSA("xy_z_init", SSAType.tensor(100, 8, "i64"))),
-                                SSA("xy_z", SSAType.tensor(100, 8, "i64")),
+                                _SSA_3,
+                                Tensor.empty(Vec[SSA].empty(), SSALiteral.value("xy_z_init", SSAType.tensor(100, 8, "i64"))),
+                                SSALiteral.value("xy_z", SSAType.tensor(100, 8, "i64")),
                             ),
                             SSAType.tensor(100, 8, "i64"),
                         )

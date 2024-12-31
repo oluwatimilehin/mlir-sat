@@ -12,7 +12,7 @@ from xdsl.ir import SSAValue
 
 from egglog import Vec, String
 
-from eggie.enodes.base import Operation, SSAType, SSA, Region, Block
+from eggie.enodes.base import SSAType, SSALiteral, SSA, Region, Block
 from eggie.enodes.arith import Arith
 from eggie.enodes.func import Func
 from eggie.enodes.linalg import Linalg
@@ -101,7 +101,7 @@ class BlockSSAManager:
             self._ssa_is_standalone[name] = False
             return name, self._ssa_name_to_val[name]
 
-        return name, SSA(name, type)
+        return name, SSALiteral.value(name, type)
 
     def get_standalone_ops(self) -> SSA:
         res: List[SSA] = []
@@ -160,7 +160,7 @@ class MLIRParser:
 
         return Region(Vec[Block](*blocks))
 
-    def _process_op(self, op: IRDLOperation) -> Operation:
+    def _process_op(self, op: IRDLOperation) -> SSA:
         match op.dialect_name():
             case "arith":
                 return self._process_arith(op)

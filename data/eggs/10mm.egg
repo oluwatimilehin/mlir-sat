@@ -2,94 +2,77 @@ Region(
     Vec[Block](
         Block(
             Vec[SSA].empty(),
-            Vec[Operation](
+            Vec[SSA](
                 Func.func(
                     "_10mm",
                     Vec[SSA](
-                        SSA("arg0", SSAType.tensor(73, 77, "i32")),
-                        SSA("arg1", SSAType.tensor(77, 99, "i32")),
-                        SSA("arg2", SSAType.tensor(99, 39, "i32")),
-                        SSA("arg3", SSAType.tensor(39, 20, "i32")),
-                        SSA("arg4", SSAType.tensor(20, 76, "i32")),
-                        SSA("arg5", SSAType.tensor(76, 70, "i32")),
-                        SSA("arg6", SSAType.tensor(70, 75, "i32")),
-                        SSA("arg7", SSAType.tensor(75, 41, "i32")),
-                        SSA("arg8", SSAType.tensor(41, 84, "i32")),
-                        SSA("arg9", SSAType.tensor(84, 93, "i32")),
-                        SSA("arg10", SSAType.tensor(93, 79, "i32")),
+                        SSALiteral.value("arg0", SSAType.tensor(73, 77, "i32")),
+                        SSALiteral.value("arg1", SSAType.tensor(77, 99, "i32")),
+                        SSALiteral.value("arg2", SSAType.tensor(99, 39, "i32")),
+                        SSALiteral.value("arg3", SSAType.tensor(39, 20, "i32")),
+                        SSALiteral.value("arg4", SSAType.tensor(20, 76, "i32")),
+                        SSALiteral.value("arg5", SSAType.tensor(76, 70, "i32")),
+                        SSALiteral.value("arg6", SSAType.tensor(70, 75, "i32")),
+                        SSALiteral.value("arg7", SSAType.tensor(75, 41, "i32")),
+                        SSALiteral.value("arg8", SSAType.tensor(41, 84, "i32")),
+                        SSALiteral.value("arg9", SSAType.tensor(84, 93, "i32")),
+                        SSALiteral.value("arg10", SSAType.tensor(93, 79, "i32")),
                     ),
-                    Vec[Operation](
-                        Tensor.empty(Vec[SSA].empty(), SSA("0", SSAType.tensor(73, 99, "i32"))),
-                        Linalg.matmul(
-                            SSA("arg0", SSAType.tensor(73, 77, "i32")),
-                            SSA("arg1", SSAType.tensor(77, 99, "i32")),
-                            SSA("0", SSAType.tensor(73, 99, "i32")),
-                            SSA("1", SSAType.tensor(73, 99, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("2", SSAType.tensor(73, 39, "i32"))),
-                        Linalg.matmul(
-                            SSA("1", SSAType.tensor(73, 99, "i32")),
-                            SSA("arg2", SSAType.tensor(99, 39, "i32")),
-                            SSA("2", SSAType.tensor(73, 39, "i32")),
-                            SSA("3", SSAType.tensor(73, 39, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("4", SSAType.tensor(73, 20, "i32"))),
-                        Linalg.matmul(
-                            SSA("3", SSAType.tensor(73, 39, "i32")),
-                            SSA("arg3", SSAType.tensor(39, 20, "i32")),
-                            SSA("4", SSAType.tensor(73, 20, "i32")),
-                            SSA("5", SSAType.tensor(73, 20, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("6", SSAType.tensor(73, 76, "i32"))),
-                        Linalg.matmul(
-                            SSA("5", SSAType.tensor(73, 20, "i32")),
-                            SSA("arg4", SSAType.tensor(20, 76, "i32")),
-                            SSA("6", SSAType.tensor(73, 76, "i32")),
-                            SSA("7", SSAType.tensor(73, 76, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("8", SSAType.tensor(73, 70, "i32"))),
-                        Linalg.matmul(
-                            SSA("7", SSAType.tensor(73, 76, "i32")),
-                            SSA("arg5", SSAType.tensor(76, 70, "i32")),
-                            SSA("8", SSAType.tensor(73, 70, "i32")),
-                            SSA("9", SSAType.tensor(73, 70, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("10", SSAType.tensor(73, 75, "i32"))),
-                        Linalg.matmul(
-                            SSA("9", SSAType.tensor(73, 70, "i32")),
-                            SSA("arg6", SSAType.tensor(70, 75, "i32")),
-                            SSA("10", SSAType.tensor(73, 75, "i32")),
-                            SSA("11", SSAType.tensor(73, 75, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("12", SSAType.tensor(73, 41, "i32"))),
-                        Linalg.matmul(
-                            SSA("11", SSAType.tensor(73, 75, "i32")),
-                            SSA("arg7", SSAType.tensor(75, 41, "i32")),
-                            SSA("12", SSAType.tensor(73, 41, "i32")),
-                            SSA("13", SSAType.tensor(73, 41, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("14", SSAType.tensor(73, 84, "i32"))),
-                        Linalg.matmul(
-                            SSA("13", SSAType.tensor(73, 41, "i32")),
-                            SSA("arg8", SSAType.tensor(41, 84, "i32")),
-                            SSA("14", SSAType.tensor(73, 84, "i32")),
-                            SSA("15", SSAType.tensor(73, 84, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("16", SSAType.tensor(73, 93, "i32"))),
-                        Linalg.matmul(
-                            SSA("15", SSAType.tensor(73, 84, "i32")),
-                            SSA("arg9", SSAType.tensor(84, 93, "i32")),
-                            SSA("16", SSAType.tensor(73, 93, "i32")),
-                            SSA("17", SSAType.tensor(73, 93, "i32")),
-                        ),
-                        Tensor.empty(Vec[SSA].empty(), SSA("18", SSAType.tensor(73, 79, "i32"))),
-                        Linalg.matmul(
-                            SSA("17", SSAType.tensor(73, 93, "i32")),
-                            SSA("arg10", SSAType.tensor(93, 79, "i32")),
-                            SSA("18", SSAType.tensor(73, 79, "i32")),
-                            SSA("19", SSAType.tensor(73, 79, "i32")),
-                        ),
-                        Func.ret(SSA("19", SSAType.tensor(73, 79, "i32"))),
+                    Vec[SSA](
+                        Func.ret(
+                            Linalg.matmul(
+                                Linalg.matmul(
+                                    Linalg.matmul(
+                                        Linalg.matmul(
+                                            Linalg.matmul(
+                                                Linalg.matmul(
+                                                    Linalg.matmul(
+                                                        Linalg.matmul(
+                                                            Linalg.matmul(
+                                                                Linalg.matmul(
+                                                                    SSALiteral.value("arg0", SSAType.tensor(73, 77, "i32")),
+                                                                    SSALiteral.value("arg1", SSAType.tensor(77, 99, "i32")),
+                                                                    Tensor.empty(Vec[SSA].empty(), SSALiteral.value("0", SSAType.tensor(73, 99, "i32"))),
+                                                                    SSALiteral.value("1", SSAType.tensor(73, 99, "i32")),
+                                                                ),
+                                                                SSALiteral.value("arg2", SSAType.tensor(99, 39, "i32")),
+                                                                Tensor.empty(Vec[SSA].empty(), SSALiteral.value("2", SSAType.tensor(73, 39, "i32"))),
+                                                                SSALiteral.value("3", SSAType.tensor(73, 39, "i32")),
+                                                            ),
+                                                            SSALiteral.value("arg3", SSAType.tensor(39, 20, "i32")),
+                                                            Tensor.empty(Vec[SSA].empty(), SSALiteral.value("4", SSAType.tensor(73, 20, "i32"))),
+                                                            SSALiteral.value("5", SSAType.tensor(73, 20, "i32")),
+                                                        ),
+                                                        SSALiteral.value("arg4", SSAType.tensor(20, 76, "i32")),
+                                                        Tensor.empty(Vec[SSA].empty(), SSALiteral.value("6", SSAType.tensor(73, 76, "i32"))),
+                                                        SSALiteral.value("7", SSAType.tensor(73, 76, "i32")),
+                                                    ),
+                                                    SSALiteral.value("arg5", SSAType.tensor(76, 70, "i32")),
+                                                    Tensor.empty(Vec[SSA].empty(), SSALiteral.value("8", SSAType.tensor(73, 70, "i32"))),
+                                                    SSALiteral.value("9", SSAType.tensor(73, 70, "i32")),
+                                                ),
+                                                SSALiteral.value("arg6", SSAType.tensor(70, 75, "i32")),
+                                                Tensor.empty(Vec[SSA].empty(), SSALiteral.value("10", SSAType.tensor(73, 75, "i32"))),
+                                                SSALiteral.value("11", SSAType.tensor(73, 75, "i32")),
+                                            ),
+                                            SSALiteral.value("arg7", SSAType.tensor(75, 41, "i32")),
+                                            Tensor.empty(Vec[SSA].empty(), SSALiteral.value("12", SSAType.tensor(73, 41, "i32"))),
+                                            SSALiteral.value("13", SSAType.tensor(73, 41, "i32")),
+                                        ),
+                                        SSALiteral.value("arg8", SSAType.tensor(41, 84, "i32")),
+                                        Tensor.empty(Vec[SSA].empty(), SSALiteral.value("14", SSAType.tensor(73, 84, "i32"))),
+                                        SSALiteral.value("15", SSAType.tensor(73, 84, "i32")),
+                                    ),
+                                    SSALiteral.value("arg9", SSAType.tensor(84, 93, "i32")),
+                                    Tensor.empty(Vec[SSA].empty(), SSALiteral.value("16", SSAType.tensor(73, 93, "i32"))),
+                                    SSALiteral.value("17", SSAType.tensor(73, 93, "i32")),
+                                ),
+                                SSALiteral.value("arg10", SSAType.tensor(93, 79, "i32")),
+                                Tensor.empty(Vec[SSA].empty(), SSALiteral.value("18", SSAType.tensor(73, 79, "i32"))),
+                                SSALiteral.value("19", SSAType.tensor(73, 79, "i32")),
+                            ),
+                            SSAType.tensor(73, 79, "i32"),
+                        )
                     ),
                     SSAType.tensor(73, 79, "i32"),
                 )

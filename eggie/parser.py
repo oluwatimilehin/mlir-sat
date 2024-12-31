@@ -1,9 +1,8 @@
+import logging
+
 from .ast import *
 from .lexer import *
 from eggie.enodes.base import Region
-import logging
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +28,12 @@ class EgglogParser:
         return self._validate_and_parse(token, EgglogTokenKind.REGION)
 
     def _validate(self, token: EgglogToken, expected_kind: EgglogTokenKind):
-        if token.kind != expected_kind:
+        if (
+            expected_kind == EgglogTokenKind.SSA
+            and not (
+                token.kind == EgglogTokenKind.SSA_LITERAL or Lexer.is_dialect(token)
+            )
+        ) and token.kind != expected_kind:
             raise ValueError(f"Expected {expected_kind}, received {token}")
 
     def _validate_and_parse(self, token: EgglogToken, expected_kind: EgglogTokenKind):
@@ -46,8 +50,10 @@ class EgglogParser:
                 return self._parse_region()
             case EgglogTokenKind.BLOCK:
                 return self._parse_block()
-            case EgglogTokenKind.SSA:
-                return self._parse_ssa()
+            # case EgglogTokenKind.SSA:
+            #     return self._parse_ssa()
+            case EgglogTokenKind.SSA_LITERAL:
+                return self._parse_ssa_literal()
             case EgglogTokenKind.ARITH:
                 return self._parse_arith()
             case EgglogTokenKind.SSA_TYPE:
@@ -64,6 +70,8 @@ class EgglogParser:
                 return token.text
             case EgglogTokenKind.INTEGER_LITERAL:
                 return int(token.text)
+            case EgglogTokenKind.VARIABLE_NAME:
+                return self.vars[token.text]
             case EgglogTokenKind.VEC:
                 return self._parse_vector()
             case _:
@@ -174,7 +182,26 @@ class EgglogParser:
         self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
         return TensorTypeAST(i, j, type)
 
-    def _parse_ssa(self) -> SSAExprAST:
+    # def _parse_ssa(self) -> SSAExprAST:
+    #     self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
+
+    #     name = self._validate_and_parse(
+    #         self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
+    #     )
+
+    #     type = self._validate_and_parse(
+    #         self.lexer.next_token(), EgglogTokenKind.SSA_TYPE
+    #     )
+
+    #     self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
+
+    #     return SSAExprAST(name, type)
+
+    def _parse_ssa_literal(self) -> SSAExprAST:
+        op = self._get_class_fn()
+        if not op == "value":
+            raise ValueError("Expected value keyword for SSALiteral")
+
         self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
 
         name = self._validate_and_parse(
@@ -369,10 +396,11 @@ class EgglogParser:
                 )
                 val = FuncAST(name, args, ops, type)
             case "ret":
+                val = self._validate_and_parse(self.lexer.next_token(), EgglogTokenKind.SSA)
                 type = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.SSA
+                    self.lexer.next_token(), EgglogTokenKind.SSA_TYPE
                 )
-                val = FuncReturnAST(type)
+                val = FuncReturnAST(val, type)
             case _:
                 raise ValueError(f"Unsupported Function operation: {op}")
 

@@ -49,11 +49,22 @@ class SSAExprAST(ExprAST):
 @dataclass
 class OperationAST(ExprAST):
     pass
+    # @property
+    # def name(self):
+    #     pass
+    
+    # @property
+    # def type(self):
+    #     pass
+    
+    # @property
+    # def dependencies(self):
+    #     pass
 
 
 @dataclass
 class BlockAST(ExprAST):
-    args: List[SSAExprAST]
+    args: List[ExprAST]
     ops: List[OperationAST]
 
     def __str__(self) -> str:
@@ -82,7 +93,19 @@ class RegionAST(ExprAST):
 @dataclass
 class ArithConstantAst(OperationAST):
     val: int
-    out: SSAExprAST
+    out: ExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+    
+    @property
+    def type(self):
+        return self.out.type
+    
+    @property
+    def dependencies(self):
+        return None
 
     def __str__(self) -> str:
         result = f"%{self.out.name} = arith.constant {self.val} : {self.out.type} \n"
@@ -92,26 +115,57 @@ class ArithConstantAst(OperationAST):
 @dataclass
 class FuncAST(OperationAST):
     name: str
-    args: List[SSAExprAST]
+    args: List[ExprAST]
     body: List[OperationAST]
     type: TensorTypeAST
+
+    def _get_dependencies(self, op: OperationAST, accum):
+        if not op.dependencies:
+            accum[op.name] = op
+            return
+        
+        for dependency in op.dependencies:
+            self._get_dependencies(dependency, accum)
+
+        accum[op.name] = op
 
     def __str__(self) -> str:
         args_list = [f"%{ssa.name} : {ssa.type}" for ssa in self.args]
         args_str = "(" + ", ".join(args_list) + ")"
         result = f"func.func @{self.name}{args_str} -> {self.type}" + " { \n"
+
+        all_ops = []
         for op in self.body:
+            accum = {}
+            self._get_dependencies(op, accum)
+            all_ops += accum.values()
+        
+        for op in all_ops:
             result += str(op)
 
         result += "} \n"
         return result
 
 
+
+
 @dataclass
 class FuncCallAST(OperationAST):
     callee: str
-    args: List[SSAExprAST]
-    out: SSAExprAST
+    args: List[ExprAST]
+    out: ExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+    
+    @property
+    def type(self):
+        return self.out.type
+
+    @property
+    def dependencies(self):
+        return [op for op in self.args + [self.out]  if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         arg_names = [f"%{ssa.name}" for ssa in self.args]
@@ -126,6 +180,15 @@ class FuncCallAST(OperationAST):
 @dataclass
 class FuncReturnAST(OperationAST):
     return_val: SSAExprAST
+    type: ExprTypeAST
+
+    @property
+    def name(self):
+        return f"return:{self.return_val}"
+
+    @property
+    def dependencies(self):
+        return [self.return_val] if isinstance(self.return_val, OperationAST) else None
 
     def __str__(self) -> str:
         result = f"func.return %{self.return_val.name} : {self.return_val.type} \n"
@@ -137,6 +200,18 @@ class LinalgFillAST(OperationAST):
     scalar: SSAExprAST
     out: SSAExprAST
     return_val: SSAExprAST
+
+    @property
+    def name(self):
+        return self.return_val.name
+    
+    @property
+    def type(self):
+        return self.return_val.type
+
+    @property
+    def dependencies(self):
+        return [op for op in [self.scalar, self.out]  if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         result = f"%{self.return_val.name} = linalg.fill ins(%{self.scalar.name} : {self.scalar.type}) outs(%{self.out.name} : {self.out.type}) -> {self.return_val.type} \n"
@@ -150,6 +225,18 @@ class LinalgMatmulAST(OperationAST):
     out: SSAExprAST
     return_val: SSAExprAST
 
+    @property
+    def name(self):
+        return self.return_val.name
+    
+    @property
+    def type(self):
+        return self.return_val.type
+
+    @property
+    def dependencies(self):
+        return [op for op in [self.x, self.y, self.out]  if isinstance(op, OperationAST)]
+
     def __str__(self) -> str:
         result = f"%{self.return_val.name} = linalg.matmul ins(%{self.x.name}, %{self.y.name} : {self.x.type}, {self.y.type}) outs(%{self.out.name} : {self.out.type}) -> {self.return_val.type} \n"
         return result
@@ -158,7 +245,11 @@ class LinalgMatmulAST(OperationAST):
 @dataclass
 class PrintFormatAST(OperationAST):
     format_str: str
-    vals: List[SSAExprAST]
+    vals: List[ExprAST]
+
+    @property
+    def dependencies(self):
+        return [op for op in self.vals if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         result = f'printf.print_format "{self.format_str}"'
@@ -172,9 +263,21 @@ class PrintFormatAST(OperationAST):
 
 @dataclass
 class TensorCastAST(OperationAST):
-    source: SSAExprAST
+    source: ExprAST
     dest: TensorTypeAST
-    out: SSAExprAST
+    out: ExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+    
+    @property
+    def type(self):
+        return self.out.type
+
+    @property
+    def dependencies(self):
+        return [op for op in [self.source, self.dest]  if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         result = f"%{self.out.name} = tensor.cast %{self.source.name} : {self.source.type} to {self.dest} \n"
@@ -183,9 +286,21 @@ class TensorCastAST(OperationAST):
 
 @dataclass
 class TensorDimAST(OperationAST):
-    source: SSAExprAST
-    index: SSAExprAST
+    source: ExprAST
+    index: ExprAST
     out: SSAExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+    
+    @property
+    def type(self):
+        return self.out.type
+    
+    @property
+    def dependencies(self):
+        return [op for op in [self.source, self.index]  if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         result = f"%{self.out.name} = tensor.dim %{self.source.name}, %{self.index.name} : {self.source.type} \n"
@@ -194,8 +309,20 @@ class TensorDimAST(OperationAST):
 
 @dataclass
 class TensorEmptyAST(OperationAST):
-    args: List[SSAExprAST]
+    args: List[ExprAST]
     return_val: SSAExprAST
+
+    @property
+    def name(self):
+        return self.return_val.name
+    
+    @property
+    def type(self):
+        return self.return_val.type
+
+    @property
+    def dependencies(self):
+        return [op for op in self.args  if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         args_list = [f"%{arg.name}" for arg in self.args]

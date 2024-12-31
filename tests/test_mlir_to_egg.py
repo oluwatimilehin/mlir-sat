@@ -1,11 +1,15 @@
-from converter import Converter
 
-from test_util import TestUtil
-
-from xdsl.parser import Parser as IRParser
+import difflib
+import logging
 
 from pathlib import Path
-import logging
+
+
+from converter import Converter
+from test_util import TestUtil
+from xdsl.parser import Parser as IRParser
+
+
 
 
 logger = logging.getLogger(__name__)
@@ -32,4 +36,20 @@ def test_mlir_to_egg():
             egg_file = f"{eggs_path}/{mlir_file_name}.egg"
             expected_egg_expr = Path(egg_file).read_text()
 
-            assert str(actual_egg).strip() == expected_egg_expr.strip()
+            diffs = []
+            for i, s in enumerate(
+                difflib.ndiff(
+                   str(actual_egg).strip(), expected_egg_expr.strip()
+                )
+            ):
+                match s[0]:
+                    case "-":
+                        diffs.append(f"Delete {s[-1]} from position {i}")
+                    case "+":
+                        diffs.append(f"Add {s[-1]} to position {i}")
+                    case _:
+                        continue
+
+            assert not diffs
+
+            # assert str(actual_egg).strip() == expected_egg_expr.strip()
