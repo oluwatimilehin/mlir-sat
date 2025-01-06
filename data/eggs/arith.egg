@@ -1,0 +1,52 @@
+_SSAType_1 = SSAType.integer(32)
+Region(
+    Vec[Block](
+        Block(
+            Vec[SSA].empty(),
+            Vec[SSA](
+                Func.func(
+                    "test_mult_shifts",
+                    Vec[SSA](SSALiteral.value("arg0", _SSAType_1), SSALiteral.value("arg1", _SSAType_1)),
+                    Vec[SSA](
+                        Func.ret(
+                            Arith.addi(
+                                Arith.addi(
+                                    Arith.muli(
+                                        Arith.muli(SSALiteral.value("arg0", _SSAType_1), Arith.constant(2, SSALiteral.value("c2", _SSAType_1)), SSALiteral.value("0", _SSAType_1)),
+                                        Arith.constant(4, SSALiteral.value("c4", _SSAType_1)),
+                                        SSALiteral.value("1", _SSAType_1),
+                                    ),
+                                    Arith.muli(
+                                        Arith.muli(SSALiteral.value("arg1", _SSAType_1), Arith.constant(8, SSALiteral.value("c8", _SSAType_1)), SSALiteral.value("2", _SSAType_1)),
+                                        Arith.constant(16, SSALiteral.value("c16", _SSAType_1)),
+                                        SSALiteral.value("3", _SSAType_1),
+                                    ),
+                                    SSALiteral.value("4", _SSAType_1),
+                                ),
+                                Arith.muli(SSALiteral.value("arg0", _SSAType_1), SSALiteral.value("arg1", _SSAType_1), SSALiteral.value("5", _SSAType_1)),
+                                SSALiteral.value("result", _SSAType_1),
+                            ),
+                            _SSAType_1,
+                        )
+                    ),
+                    _SSAType_1,
+                ),
+                Func.func(
+                    "main",
+                    Vec[SSA](),
+                    Vec[SSA](
+                        Func.ret(
+                            Func.call(
+                                "@test_mult_shifts",
+                                Vec[SSA](Arith.constant(123, SSALiteral.value("val1", _SSAType_1)), Arith.constant(456, SSALiteral.value("val2", _SSAType_1))),
+                                SSALiteral.value("result", _SSAType_1),
+                            ),
+                            _SSAType_1,
+                        )
+                    ),
+                    _SSAType_1,
+                ),
+            ),
+        )
+    )
+)
