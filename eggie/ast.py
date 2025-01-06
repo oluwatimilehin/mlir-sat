@@ -13,7 +13,24 @@ class ExprTypeAST(ExprAST):
 
 
 @dataclass
-class TensorTypeAST(ExprTypeAST):
+class ShapedTypeAST(ExprTypeAST):
+    pass
+
+
+@dataclass
+class MemrefTypeAST(ShapedTypeAST):
+    i: int
+    j: int
+    t: str
+
+    def __str__(self) -> str:
+        i_str = f"{self.i}" if self.i != -1 else "?"
+        j_str = f"{self.j}" if self.j != -1 else "?"
+        return f"memref<{i_str}x{j_str}x{self.t}>"
+
+
+@dataclass
+class TensorTypeAST(ShapedTypeAST):
     i: int
     j: int
     t: str
@@ -22,6 +39,12 @@ class TensorTypeAST(ExprTypeAST):
         i_str = f"{self.i}" if self.i != -1 else "?"
         j_str = f"{self.j}" if self.j != -1 else "?"
         return f"tensor<{i_str}x{j_str}x{self.t}>"
+
+
+@dataclass
+class NoneTypeAST(ExprTypeAST):
+    def __str__(self) -> str:
+        return "()"
 
 
 @dataclass
@@ -49,17 +72,6 @@ class SSAExprAST(ExprAST):
 @dataclass
 class OperationAST(ExprAST):
     pass
-    # @property
-    # def name(self):
-    #     pass
-    
-    # @property
-    # def type(self):
-    #     pass
-    
-    # @property
-    # def dependencies(self):
-    #     pass
 
 
 @dataclass
@@ -98,11 +110,11 @@ class ArithConstantAst(OperationAST):
     @property
     def name(self):
         return self.out.name
-    
+
     @property
     def type(self):
         return self.out.type
-    
+
     @property
     def dependencies(self):
         return None
@@ -121,13 +133,16 @@ class FuncAST(OperationAST):
 
     def _get_dependencies(self, op: OperationAST, accum):
         if not op.dependencies:
-            accum[op.name] = op
+            accum.append(op)
             return
-        
+
+        # if op.name in accum:
+        #     return
+
         for dependency in op.dependencies:
             self._get_dependencies(dependency, accum)
 
-        accum[op.name] = op
+        accum.append(op)
 
     def __str__(self) -> str:
         args_list = [f"%{ssa.name} : {ssa.type}" for ssa in self.args]
@@ -135,18 +150,22 @@ class FuncAST(OperationAST):
         result = f"func.func @{self.name}{args_str} -> {self.type}" + " { \n"
 
         all_ops = []
+
         for op in self.body:
-            accum = {}
+            accum = []
             self._get_dependencies(op, accum)
-            all_ops += accum.values()
-        
+            all_ops += accum
+
+        # The accumulator should ideally be a map so that we don't have this logic to eliminate duplicates, but it's a little tricky to do with instructions that don't have return types, so I'm doing this hack below
+        printed = set()
         for op in all_ops:
-            result += str(op)
+            op_str = str(op)
+            if not op_str in printed:
+                printed.add(op_str)
+                result += op_str
 
         result += "} \n"
         return result
-
-
 
 
 @dataclass
@@ -158,14 +177,14 @@ class FuncCallAST(OperationAST):
     @property
     def name(self):
         return self.out.name
-    
+
     @property
     def type(self):
         return self.out.type
 
     @property
     def dependencies(self):
-        return [op for op in self.args + [self.out]  if isinstance(op, OperationAST)]
+        return [op for op in self.args + [self.out] if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         arg_names = [f"%{ssa.name}" for ssa in self.args]
@@ -196,6 +215,39 @@ class FuncReturnAST(OperationAST):
 
 
 @dataclass
+class LinalgAddAST(OperationAST):
+    x: SSAExprAST
+    y: SSAExprAST
+    out: SSAExprAST
+    return_val: SSAExprAST
+
+    @property
+    def name(self):
+        return self.return_val.name if not self.is_void else self.out.name
+
+    @property
+    def type(self):
+        return self.return_val.type if not self.is_void else self.out.type
+
+    @property
+    def is_void(self):
+        return isinstance(self.return_val.type, NoneTypeAST)
+
+    @property
+    def dependencies(self):
+        return [op for op in [self.x, self.y, self.out] if isinstance(op, OperationAST)]
+
+    def __str__(self) -> str:
+        result = f"linalg.add ins(%{self.x.name}, %{self.y.name} : {self.x.type}, {self.y.type}) outs(%{self.out.name} : {self.out.type})"
+
+        if not self.is_void:
+            result = f"%{self.return_val.name} = {result}  -> {self.return_val.type}"
+
+        result += "\n"
+        return result
+
+
+@dataclass
 class LinalgFillAST(OperationAST):
     scalar: SSAExprAST
     out: SSAExprAST
@@ -204,14 +256,14 @@ class LinalgFillAST(OperationAST):
     @property
     def name(self):
         return self.return_val.name
-    
+
     @property
     def type(self):
         return self.return_val.type
 
     @property
     def dependencies(self):
-        return [op for op in [self.scalar, self.out]  if isinstance(op, OperationAST)]
+        return [op for op in [self.scalar, self.out] if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         result = f"%{self.return_val.name} = linalg.fill ins(%{self.scalar.name} : {self.scalar.type}) outs(%{self.out.name} : {self.out.type}) -> {self.return_val.type} \n"
@@ -227,18 +279,69 @@ class LinalgMatmulAST(OperationAST):
 
     @property
     def name(self):
-        return self.return_val.name
-    
+        return self.return_val.name if not self.is_void else self.out.name
+
     @property
     def type(self):
-        return self.return_val.type
+        return self.return_val.type if not self.is_void else self.out.type
+
+    @property
+    def is_void(self):
+        return isinstance(self.return_val.type, NoneTypeAST)
 
     @property
     def dependencies(self):
-        return [op for op in [self.x, self.y, self.out]  if isinstance(op, OperationAST)]
+        return [op for op in [self.x, self.y, self.out] if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
-        result = f"%{self.return_val.name} = linalg.matmul ins(%{self.x.name}, %{self.y.name} : {self.x.type}, {self.y.type}) outs(%{self.out.name} : {self.out.type}) -> {self.return_val.type} \n"
+        result = f"linalg.matmul ins(%{self.x.name}, %{self.y.name} : {self.x.type}, {self.y.type}) outs(%{self.out.name} : {self.out.type})"
+
+        if not self.is_void:
+            result = f"%{self.return_val.name} = {result}  -> {self.return_val.type}"
+
+        result += "\n"
+        return result
+
+
+@dataclass
+class MemrefAllocAST(OperationAST):
+    out: SSAExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+
+    @property
+    def type(self):
+        return self.out.type
+
+    @property
+    def dependencies(self):
+        return None
+
+    def __str__(self) -> str:
+        result = f"%{self.name} = memref.alloc() : {self.type}\n"
+        return result
+
+
+@dataclass
+class MemrefDeallocAST(OperationAST):
+    arg: SSAExprAST
+
+    @property
+    def name(self):
+        return self.arg.name
+
+    @property
+    def type(self):
+        return NoneTypeAST
+
+    @property
+    def dependencies(self):
+        return [self.arg] if isinstance(self.arg, OperationAST) else None
+
+    def __str__(self) -> str:
+        result = f"memref.dealloc %{self.arg.name} : {self.arg.type}\n"
         return result
 
 
@@ -270,14 +373,14 @@ class TensorCastAST(OperationAST):
     @property
     def name(self):
         return self.out.name
-    
+
     @property
     def type(self):
         return self.out.type
 
     @property
     def dependencies(self):
-        return [op for op in [self.source, self.dest]  if isinstance(op, OperationAST)]
+        return [op for op in [self.source, self.dest] if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         result = f"%{self.out.name} = tensor.cast %{self.source.name} : {self.source.type} to {self.dest} \n"
@@ -293,14 +396,14 @@ class TensorDimAST(OperationAST):
     @property
     def name(self):
         return self.out.name
-    
+
     @property
     def type(self):
         return self.out.type
-    
+
     @property
     def dependencies(self):
-        return [op for op in [self.source, self.index]  if isinstance(op, OperationAST)]
+        return [op for op in [self.source, self.index] if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         result = f"%{self.out.name} = tensor.dim %{self.source.name}, %{self.index.name} : {self.source.type} \n"
@@ -315,14 +418,14 @@ class TensorEmptyAST(OperationAST):
     @property
     def name(self):
         return self.return_val.name
-    
+
     @property
     def type(self):
         return self.return_val.type
 
     @property
     def dependencies(self):
-        return [op for op in self.args  if isinstance(op, OperationAST)]
+        return [op for op in self.args if isinstance(op, OperationAST)]
 
     def __str__(self) -> str:
         args_list = [f"%{arg.name}" for arg in self.args]

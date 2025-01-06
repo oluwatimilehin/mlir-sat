@@ -13,6 +13,7 @@ class EgglogTokenKind(Enum):
     LEFT_PARENTHESIS = auto()
     LEFT_SQUARE_BRACKET = auto()
     LINALG = auto()
+    MEMREF = auto()
     INTEGER_LITERAL = auto()
     OPERATION = auto()
     PRINTF = auto()
@@ -32,6 +33,7 @@ dialect_to_token = {
     "Arith": EgglogTokenKind.ARITH,
     "Func": EgglogTokenKind.FUNC,
     "Linalg": EgglogTokenKind.LINALG,
+    "Memref": EgglogTokenKind.MEMREF,
     "Tensor": EgglogTokenKind.TENSOR,
     "Printf": EgglogTokenKind.PRINTF,
 }
@@ -65,7 +67,7 @@ class Lexer:
     def __init__(self, input: str):
         self.input = input
         self.index = 0
-    
+
     @classmethod
     def is_keyword(cls, token: EgglogToken) -> bool:
         return keyword_to_token.get(token.text) != None

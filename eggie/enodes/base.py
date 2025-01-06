@@ -8,15 +8,23 @@ class SSAType(Expr):
 
     @method()
     @classmethod
-    def tensor(cls, i: i64Like, j: i64Like, t: StringLike) -> SSAType: ...
-
-    @method()
-    @classmethod
     def integer(cls, width: i64Like) -> SSAType: ...
 
     @method()
     @classmethod
     def index(cls) -> SSAType: ...
+
+    @method()
+    @classmethod
+    def memref(cls, i: i64Like, j: i64Like, t: StringLike) -> SSAType: ...
+
+    @method()
+    @classmethod
+    def none(cls) -> SSAType: ...
+
+    @method()
+    @classmethod
+    def tensor(cls, i: i64Like, j: i64Like, t: StringLike) -> SSAType: ...
 
 
 class SSA(Expr):
@@ -28,7 +36,6 @@ class SSALiteral(Expr):
     @method()
     @classmethod
     def value(self, name: String, type: SSAType) -> SSA: ...
-    
 
 
 class Block(Expr):

@@ -3,6 +3,7 @@ import logging
 from .ast import *
 from .lexer import *
 from eggie.enodes.base import Region
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,20 +51,20 @@ class EgglogParser:
                 return self._parse_region()
             case EgglogTokenKind.BLOCK:
                 return self._parse_block()
-            # case EgglogTokenKind.SSA:
-            #     return self._parse_ssa()
             case EgglogTokenKind.SSA_LITERAL:
                 return self._parse_ssa_literal()
             case EgglogTokenKind.ARITH:
                 return self._parse_arith()
+            case EgglogTokenKind.FUNC:
+                return self._parse_function()
+            case EgglogTokenKind.MEMREF:
+                return self._parse_memref()
             case EgglogTokenKind.SSA_TYPE:
                 return self._parse_ssa_type()
             case EgglogTokenKind.TENSOR:
                 return self._parse_tensor()
             case EgglogTokenKind.LINALG:
                 return self._parse_linalg()
-            case EgglogTokenKind.FUNC:
-                return self._parse_function()
             case EgglogTokenKind.PRINTF:
                 return self._parse_printf()
             case EgglogTokenKind.STRING_LITERAL:
@@ -141,11 +142,15 @@ class EgglogParser:
 
         match name:
             case "tensor":
-                return self._parse_tensor_type()
+                return self._parse_shaped_type(name)
             case "integer":
                 return self._parse_integer_type()
             case "index":
                 return self._parse_index_type()
+            case "memref":
+                return self._parse_shaped_type(name)
+            case "none":
+                return self._parse_none_type()
             case _:
                 raise ValueError(f"Unsupported SSA type: {name}")
 
@@ -164,7 +169,12 @@ class EgglogParser:
         self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
         return IntegerTypeAST(width)
 
-    def _parse_tensor_type(self) -> TensorTypeAST:
+    def _parse_none_type(self) -> IndexTypeAST:
+        self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
+        self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
+        return NoneTypeAST()
+
+    def _parse_shaped_type(self, name) -> ShapedTypeAST:
         self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
 
         i = self._validate_and_parse(
@@ -180,22 +190,9 @@ class EgglogParser:
         )
 
         self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
-        return TensorTypeAST(i, j, type)
-
-    # def _parse_ssa(self) -> SSAExprAST:
-    #     self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
-
-    #     name = self._validate_and_parse(
-    #         self.lexer.next_token(), EgglogTokenKind.STRING_LITERAL
-    #     )
-
-    #     type = self._validate_and_parse(
-    #         self.lexer.next_token(), EgglogTokenKind.SSA_TYPE
-    #     )
-
-    #     self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
-
-    #     return SSAExprAST(name, type)
+        return (
+            TensorTypeAST(i, j, type) if name == "tensor" else MemrefTypeAST(i, j, type)
+        )
 
     def _parse_ssa_literal(self) -> SSAExprAST:
         op = self._get_class_fn()
@@ -320,6 +317,35 @@ class EgglogParser:
 
         val: OperationAST = None
         match op:
+            case "add":
+                x = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+
+                y = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+
+                return_val = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+
+                val = LinalgAddAST(x, y, out, return_val)
+            case "fill":
+                scalar = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                return_val = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                val = LinalgFillAST(scalar, out, return_val)
             case "matmul":
                 x = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA
@@ -338,19 +364,32 @@ class EgglogParser:
                 )
 
                 val = LinalgMatmulAST(x, y, out, return_val)
-            case "fill":
-                scalar = self._validate_and_parse(
-                    self.lexer.next_token(), EgglogTokenKind.SSA
-                )
+            case _:
+                raise ValueError(f"Unsupported Linalg operation: {op}")
+
+        self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
+        return val
+
+    def _parse_memref(self) -> OperationAST:
+        op = self._get_class_fn()
+
+        self._validate(self.lexer.next_token(), EgglogTokenKind.LEFT_PARENTHESIS)
+
+        val: OperationAST = None
+
+        match op:
+            case "alloc":
                 out = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA
                 )
-                return_val = self._validate_and_parse(
+                val = MemrefAllocAST(out)
+            case "dealloc":
+                arg = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA
                 )
-                val = LinalgFillAST(scalar, out, return_val)
+                val = MemrefDeallocAST(arg)
             case _:
-                raise ValueError(f"Unsupported Linalg operation: {op}")
+                raise ValueError(f"Unsupported memref operation: {op}")
 
         self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
         return val
@@ -396,7 +435,9 @@ class EgglogParser:
                 )
                 val = FuncAST(name, args, ops, type)
             case "ret":
-                val = self._validate_and_parse(self.lexer.next_token(), EgglogTokenKind.SSA)
+                val = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
                 type = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA_TYPE
                 )

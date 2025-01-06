@@ -10,5 +10,3 @@ class Arith(Expr):
     @method()
     @classmethod
     def constant(cls, val: i64Like, out: SSA) -> SSA: ...
-
-    
