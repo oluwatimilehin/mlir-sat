@@ -1,4 +1,3 @@
-
 import difflib
 import logging
 
@@ -8,8 +7,6 @@ from pathlib import Path
 from converter import Converter
 from test_util import TestUtil
 from xdsl.parser import Parser as IRParser
-
-
 
 
 logger = logging.getLogger(__name__)
@@ -38,9 +35,7 @@ def test_mlir_to_egg():
 
             diffs = []
             for i, s in enumerate(
-                difflib.ndiff(
-                   str(actual_egg).strip(), expected_egg_expr.strip()
-                )
+                difflib.ndiff(str(actual_egg).strip(), expected_egg_expr.strip())
             ):
                 match s[0]:
                     case "-":

@@ -13,7 +13,6 @@ from xdsl.dialects.builtin import Builtin
 
 
 class TestUtil:
-
     @classmethod
     def context(cls) -> MLContext:
         ctx = MLContext()
