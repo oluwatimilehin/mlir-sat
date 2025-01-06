@@ -252,7 +252,18 @@ class EgglogParser:
                 out = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA
                 )
-                val = ArithMuliAst(x, y, out)         
+                val = ArithMuliAst(x, y, out)
+            case "shli":
+                lhs = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                rhs = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                val = ArithShliAst(lhs, rhs, out)
             case _:
                 raise ValueError(f"Unsupported Arith operation: {op}")
 

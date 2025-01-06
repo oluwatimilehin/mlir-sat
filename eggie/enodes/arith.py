@@ -7,7 +7,7 @@ class Arith(Expr):
     @method()
     def __init__(self) -> None: ...
 
-    @method()
+    @method(cost=100)
     @classmethod
     def addi(cls, op1: SSA, op2: SSA, out: SSA) -> SSA: ...
 
@@ -15,6 +15,10 @@ class Arith(Expr):
     @classmethod
     def constant(cls, val: i64Like, out: SSA) -> SSA: ...
 
-    @method()
+    @method(cost=200)
     @classmethod
     def muli(cls, op1: SSA, op2: SSA, out: SSA) -> SSA: ...
+
+    @method(cost=100)
+    @classmethod
+    def shli(cls, lhs: SSA, rhs: SSA, out: SSA) -> SSA: ...

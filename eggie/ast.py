@@ -171,6 +171,29 @@ class ArithMuliAst(OperationAST):
 
 
 @dataclass
+class ArithShliAst(OperationAST):
+    lhs: SSAExprAST
+    rhs: SSAExprAST
+    out: SSAExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+
+    @property
+    def type(self):
+        return self.out.type
+
+    @property
+    def dependencies(self):
+        return [arg for arg in [self.x, self.y] if isinstance(arg, OperationAST)]
+
+    def __str__(self) -> str:
+        result = f"%{self.out.name} = arith.shli %{self.lhs.name}, %{self.rhs.name} : {self.out.type} \n"
+        return result
+
+
+@dataclass
 class FuncAST(OperationAST):
     name: str
     args: List[ExprAST]

@@ -163,7 +163,7 @@ def run_linalg():
 
 
 def run_arith():
-    mlir_file = "data/mlir/arith.mlir"
+    mlir_file = "data/converted/arith.mlir"
     print("---Running Arith---")
     with open(mlir_file) as f:
         mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")

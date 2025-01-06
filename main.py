@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from egglog import *
+
 from xdsl.context import MLContext
 
 from xdsl.dialects import (
@@ -19,7 +21,7 @@ from xdsl.printer import Printer
 
 from converter import Converter
 
-from egglog import *
+from eggie.rewrites import rewrites_ruleset
 
 
 def context() -> MLContext:
@@ -59,19 +61,27 @@ if __name__ == "__main__":
                 f.write(str(egglog_region))
 
             egraph = EGraph(save_egglog_string=True)
-            egraph.run(1)
+            egglog_region = egraph.let("expr", egglog_region)
+            egraph.run(1000, ruleset=rewrites_ruleset)
 
+            egraph.display()
+
+            print(f"Extracting expression")
             extracted = egraph.extract(egglog_region)
-            converted_module_op = Converter.to_mlir(extracted, context())
 
-            converted_mlir_file = f"{converted_path}/{file_name}-converted.mlir"
+            # egg_expr = egraph.let("expr", egg_expr)
+
+            # egraph.display()
+
+            converted_module_op = Converter.to_mlir(extracted, context())
+            converted_mlir_file = f"{converted_path}/{file_name}.mlir"
 
             with open(converted_mlir_file, "w") as f:
                 printer = Printer(stream=f)
                 printer.print(converted_module_op)
 
-            assert module_op.is_structurally_equivalent(converted_module_op)
+            # assert module_op.is_structurally_equivalent(converted_module_op)
 
-            converted_egg_file = f"{converted_path}/{file_name}-converted.egg"
+            converted_egg_file = f"{converted_path}/{file_name}.egg"
             with open(converted_egg_file, "w") as f:
                 f.write(str(extracted))
