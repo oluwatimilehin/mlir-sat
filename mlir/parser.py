@@ -10,7 +10,7 @@ from xdsl.dialects.builtin import (
     ShapedType,
     TensorType,
 )
-from xdsl.dialects.arith import ConstantOp
+from xdsl.dialects.arith import AddiOp, ConstantOp, MuliOp
 from xdsl.dialects.func import FuncOp, ReturnOp, CallOp
 from xdsl.dialects.linalg import AddOp, FillOp, MatmulOp
 from xdsl.dialects.memref import AllocOp, DeallocOp
@@ -153,6 +153,7 @@ class BlockSSAManager:
         self._ssa_name_getter.reset()
 
 
+# TODO: Clean up this class; What can I move to separate classes?
 class MLIRParser:
     def __init__(self, module_op: ModuleOp) -> None:
         self._module_op = module_op
@@ -201,6 +202,10 @@ class MLIRParser:
                 res = Arith.constant(val, out)
                 self._block_ssa_manager.insert(name, res)
                 return res
+            case AddiOp.name:
+                return self._process_arith_addi(op)
+            case MuliOp.name:
+                return self._process_arith_muli(op)
             case _:
                 raise ValueError(f"Unsupported arith operation: {op}")
 
@@ -218,7 +223,7 @@ class MLIRParser:
     def _process_linalg(self, op: IRDLOperation) -> SSA:
         match op.name:
             case AddOp.name:
-                return self._process_add_op(op)
+                return self._process_linalg_add_op(op)
             case FillOp.name:
                 return self._process_fill_op(op)
             case MatmulOp.name:
@@ -252,7 +257,7 @@ class MLIRParser:
                 format_str = str(op.format_str).strip('"')
                 vals_list = []
                 for op in op.operands:
-                    vals_list.append(self._block_ssa_manager.get(op[1]))
+                    vals_list.append(self._block_ssa_manager.get(op)[1])
 
                 vals_vec = Vec[SSA](*vals_list) if vals_list else Vec[SSA].empty()
 
@@ -261,6 +266,22 @@ class MLIRParser:
                 raise ValueError(f"Unsupported printf operation: {op}")
 
     # TODO: Would be good to move these to dialect-specific classes
+    def _process_arith_addi(self, op: AddiOp) -> SSA:
+        op1 = self._block_ssa_manager.get(op.operands[0])[1]
+        op2 = self._block_ssa_manager.get(op.operands[1])[1]
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Arith.addi(op1, op2, out)
+        self._block_ssa_manager.insert(name, res)
+        return res
+
+    def _process_arith_muli(self, op: AddiOp) -> SSA:
+        op1 = self._block_ssa_manager.get(op.operands[0])[1]
+        op2 = self._block_ssa_manager.get(op.operands[1])[1]
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Arith.muli(op1, op2, out)
+        self._block_ssa_manager.insert(name, res)
+        return res
+
     def _process_cast_op(self, op: CastOp) -> SSA:
         _, source = self._block_ssa_manager.get(op.source)
 
@@ -298,7 +319,7 @@ class MLIRParser:
         self._block_ssa_manager.insert(name, res)
         return res
 
-    def _process_add_op(self, op: MatmulOp) -> SSA:
+    def _process_linalg_add_op(self, op: MatmulOp) -> SSA:
         inputs = op.inputs
         outputs = op.outputs
 

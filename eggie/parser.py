@@ -231,8 +231,30 @@ class EgglogParser:
                 )
 
                 val = ArithConstantAst(res, SSAExprAST(out.name, out.type))
+            case "addi":
+                x = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                y = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                val = ArithAddiAst(x, y, out)
+            case "muli":
+                x = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                y = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                val = ArithMuliAst(x, y, out)         
             case _:
-                raise ValueError(f"Unsupported Tensor operation: {op}")
+                raise ValueError(f"Unsupported Arith operation: {op}")
 
         self._validate(self.lexer.next_token(), EgglogTokenKind.RIGHT_PARENTHESIS)
         return val

@@ -107,24 +107,24 @@ def transform(module_op, ctx, is_linalg=False):
     ).passes
 
     for pipeline_pass in passes:
-        print(f"Applying: {pipeline_pass.name}")
         pipeline_pass.apply(ctx, module_op)
 
 
-if __name__ == "__main__":
+def run_linalg():
     mlir_file = "data/mlir/linalg.mlir"
+    print("---Running Linalg---")
     with open(mlir_file) as f:
         mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")
         module_op = mlir_parser.parse_module()
 
-        printer = Printer()
         transform(module_op, context(), True)
-        printer.print(module_op)
+        # printer = Printer()
+        # printer.print(module_op)
 
-        io = StringIO()
-        riscv.print_assembly(module_op, io)
+        # io = StringIO()
+        # riscv.print_assembly(module_op, io)
 
-        print(f"Value: {io.getvalue()}")
+        # print(f"Value: {io.getvalue()}")
 
         shape = (2, 2)
 
@@ -160,3 +160,35 @@ if __name__ == "__main__":
         )
 
         print(f"Result: {c_shaped}")
+
+
+def run_arith():
+    mlir_file = "data/mlir/arith.mlir"
+    print("---Running Arith---")
+    with open(mlir_file) as f:
+        mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")
+        module_op = mlir_parser.parse_module()
+
+        transform(module_op, context(), True)
+
+        # printer = Printer()
+        # printer.print(module_op)
+
+        # io = StringIO()
+        # riscv.print_assembly(module_op, io)
+
+        # print(f"Value: {io.getvalue()}")
+
+        riscv_op_counter = OpCounter()
+        riscv_interpreter = Interpreter(module_op, listener=riscv_op_counter)
+
+        register_implementations(
+            riscv_interpreter, context(), include_wgpu=False, include_onnx=False
+        )
+        riscv_interpreter.register_implementations(RiscvCfFunctions())
+        print(f"Result: {riscv_interpreter.call_op("main", ())[0]}")
+
+
+if __name__ == "__main__":
+    run_linalg()
+    run_arith()

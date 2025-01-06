@@ -125,6 +125,52 @@ class ArithConstantAst(OperationAST):
 
 
 @dataclass
+class ArithAddiAst(OperationAST):
+    x: SSAExprAST
+    y: SSAExprAST
+    out: SSAExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+
+    @property
+    def type(self):
+        return self.out.type
+
+    @property
+    def dependencies(self):
+        return [arg for arg in [self.x, self.y] if isinstance(arg, OperationAST)]
+
+    def __str__(self) -> str:
+        result = f"%{self.out.name} = arith.addi %{self.x.name}, %{self.y.name} : {self.out.type} \n"
+        return result
+
+
+@dataclass
+class ArithMuliAst(OperationAST):
+    x: SSAExprAST
+    y: SSAExprAST
+    out: SSAExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+
+    @property
+    def type(self):
+        return self.out.type
+
+    @property
+    def dependencies(self):
+        return [arg for arg in [self.x, self.y] if isinstance(arg, OperationAST)]
+
+    def __str__(self) -> str:
+        result = f"%{self.out.name} = arith.muli %{self.x.name}, %{self.y.name} : {self.out.type} \n"
+        return result
+
+
+@dataclass
 class FuncAST(OperationAST):
     name: str
     args: List[ExprAST]
@@ -135,9 +181,6 @@ class FuncAST(OperationAST):
         if not op.dependencies:
             accum.append(op)
             return
-
-        # if op.name in accum:
-        #     return
 
         for dependency in op.dependencies:
             self._get_dependencies(dependency, accum)

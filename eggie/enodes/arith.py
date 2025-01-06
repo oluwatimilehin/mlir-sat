@@ -9,4 +9,12 @@ class Arith(Expr):
 
     @method()
     @classmethod
+    def addi(cls, op1: SSA, op2: SSA, out: SSA) -> SSA: ...
+
+    @method()
+    @classmethod
     def constant(cls, val: i64Like, out: SSA) -> SSA: ...
+
+    @method()
+    @classmethod
+    def muli(cls, op1: SSA, op2: SSA, out: SSA) -> SSA: ...
