@@ -1,21 +1,31 @@
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
-from xdsl.dialects.builtin import ModuleOp, TensorType, IntegerType, IndexType
+from xdsl.dialects.builtin import (
+    ModuleOp,
+    Float64Type,
+    IntegerType,
+    IndexType,
+    MemRefType,
+    ShapedType,
+    TensorType,
+)
 from xdsl.dialects.arith import ConstantOp
 from xdsl.dialects.func import FuncOp, ReturnOp, CallOp
-from xdsl.dialects.linalg import MatmulOp, FillOp
+from xdsl.dialects.linalg import AddOp, FillOp, MatmulOp
+from xdsl.dialects.memref import AllocOp, DeallocOp
 from xdsl.dialects.tensor import EmptyOp, DimOp, CastOp
 from xdsl.dialects.printf import PrintFormatOp
 from xdsl.irdl.operations import IRDLOperation
 from xdsl.ir import SSAValue
 
-from egglog import Vec, String
+from egglog import Vec
 
 from eggie.enodes.base import SSAType, SSALiteral, SSA, Region, Block
 from eggie.enodes.arith import Arith
 from eggie.enodes.func import Func
 from eggie.enodes.linalg import Linalg
+from eggie.enodes.memref import Memref
 from eggie.enodes.tensor import Tensor
 from eggie.enodes.printf import Printf
 
@@ -84,11 +94,6 @@ class BlockSSAManager:
         self._ssa_name_getter = SSANameGetter()
 
     def insert(self, name: str, val: SSA):
-        if name in self._ssa_name_to_val:
-            raise ValueError(
-                f"Name {name} already exists in map: {self._ssa_name_to_val}. Attempting to provide value: {val}"
-            )
-
         self._ssa_name_to_val[name] = val
         self._ssa_is_standalone[name] = True
 
@@ -111,9 +116,12 @@ class BlockSSAManager:
 
         return res
 
+    def get_name(self, val: SSA) -> str:
+        return self._ssa_name_getter.get_name(val)
+
     def get_egg_type(self, mlir_type) -> SSAType:
-        if isinstance(mlir_type, TensorType):
-            return self._to_egg_tensor_type(mlir_type)
+        if isinstance(mlir_type, ShapedType):
+            return self._to_egg_shaped_type(mlir_type)
 
         if isinstance(mlir_type, IntegerType):
             return SSAType.integer(mlir_type.width.data)
@@ -123,15 +131,22 @@ class BlockSSAManager:
 
         raise ValueError(f"Unsupported mlir type provided: {mlir_type}")
 
-    def _to_egg_tensor_type(self, tensor_type: TensorType) -> SSAType:
-        shape = tensor_type.get_shape()
-        element_type = tensor_type.get_element_type()
+    def _to_egg_shaped_type(self, ranked_type: TensorType | MemRefType) -> SSAType:
+        shape = ranked_type.get_shape()
+        element_type = ranked_type.get_element_type()
 
         if isinstance(element_type, IntegerType):
             element_type = f"i{element_type.width.data}"
+        elif isinstance(element_type, Float64Type):
+            element_type = f"f64"
         else:
             raise ValueError(f"Unsupported element type: {element_type}")
-        return SSAType.tensor(shape[0], shape[1], element_type)
+
+        return (
+            SSAType.tensor(shape[0], shape[1], element_type)
+            if isinstance(ranked_type, TensorType)
+            else SSAType.memref(shape[0], shape[1], element_type)
+        )
 
     def reset(self):
         self._ssa_name_to_val.clear()
@@ -168,6 +183,8 @@ class MLIRParser:
                 return self._process_func(op)
             case "linalg":
                 return self._process_linalg(op)
+            case "memref":
+                return self._process_memref(op)
             case "tensor":
                 return self._process_tensor(op)
             case "printf":
@@ -194,24 +211,29 @@ class MLIRParser:
             case FuncOp.name:
                 return self._process_func_op(op)
             case ReturnOp.name:
-                _, return_val = self._block_ssa_manager.get(op.arguments[0])
-                res = Func.ret(
-                    return_val,
-                    self._block_ssa_manager.get_egg_type(op.arguments.types[0]),
-                )
-                self._block_ssa_manager.insert("func.ret", res)
-                return res
+                return self._process_return_op(op)
             case _:
                 raise ValueError(f"Unsupported func operation: {op}")
 
     def _process_linalg(self, op: IRDLOperation) -> SSA:
         match op.name:
-            case MatmulOp.name:
-                return self._process_matmul_op(op)
+            case AddOp.name:
+                return self._process_add_op(op)
             case FillOp.name:
                 return self._process_fill_op(op)
+            case MatmulOp.name:
+                return self._process_matmul_op(op)
             case _:
                 raise ValueError(f"Unsupported linalg operation: {op}")
+
+    def _process_memref(self, op: IRDLOperation) -> SSA:
+        match op.name:
+            case AllocOp.name:
+                return self._process_alloc_op(op)
+            case DeallocOp.name:
+                return self._process_dealloc_op(op)
+            case _:
+                raise ValueError(f"Unsupported memref operation: {op}")
 
     def _process_tensor(self, op: IRDLOperation) -> SSA:
         match op.name:
@@ -276,6 +298,32 @@ class MLIRParser:
         self._block_ssa_manager.insert(name, res)
         return res
 
+    def _process_add_op(self, op: MatmulOp) -> SSA:
+        inputs = op.inputs
+        outputs = op.outputs
+
+        egg_ins: List[SSA] = []
+        egg_outs: List[SSA] = []
+
+        for input in inputs:
+            egg_ins.append(self._block_ssa_manager.get(input)[1])
+
+        for output in outputs:
+            egg_outs.append(self._block_ssa_manager.get(output)[1])
+
+        if not op.results:  # No return types when operating on memref types
+            name, out = (
+                self._block_ssa_manager.get_name(op.outputs[0]),
+                SSALiteral.value("", SSAType.none()),
+            )
+        else:
+            name, out = self._block_ssa_manager.get(op.results[0])
+
+        res = Linalg.add(egg_ins[0], egg_ins[1], egg_outs[0], out)
+
+        self._block_ssa_manager.insert(name, res)
+        return res
+
     def _process_fill_op(self, op: FillOp) -> SSA:
         _, input = self._block_ssa_manager.get(op.inputs[0])
 
@@ -300,18 +348,38 @@ class MLIRParser:
         for output in outputs:
             egg_outs.append(self._block_ssa_manager.get(output)[1])
 
-        name, out = self._block_ssa_manager.get(op.results[0])
-        res = Linalg.matmul(egg_ins[0], egg_ins[1], egg_outs[0], out)
+        if not op.results:  # No return types when operating on memref types
+            name, out = (
+                self._block_ssa_manager.get_name(op.outputs[0]),
+                SSALiteral.value("", SSAType.none()),
+            )
+        else:
+            name, out = self._block_ssa_manager.get(op.results[0])
 
+        res = Linalg.matmul(egg_ins[0], egg_ins[1], egg_outs[0], out)
         self._block_ssa_manager.insert(name, res)
+        return res
+
+    def _process_alloc_op(self, op: AllocOp) -> SSA:
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Memref.alloc(out)
+        self._block_ssa_manager.insert(name, res)
+        return res
+
+    def _process_dealloc_op(self, op: AllocOp) -> SSA:
+        name, arg = self._block_ssa_manager.get(op.operands[0])
+        res = Memref.dealloc(arg)
+        self._block_ssa_manager.insert(f"dealloc_{name}", res)
         return res
 
     def _process_func_op(self, func_op: FuncOp) -> SSA:
         self._block_ssa_manager = BlockSSAManager()
         function_name = func_op.properties["sym_name"].data
 
-        function_return_type = self._block_ssa_manager.get_egg_type(
-            func_op.function_type.outputs.data[0]
+        function_return_type = (
+            self._block_ssa_manager.get_egg_type(func_op.function_type.outputs.data[0])
+            if func_op.function_type.outputs.data
+            else SSAType.none()
         )
 
         argsVec: List[SSA] = []
@@ -347,4 +415,13 @@ class MLIRParser:
 
         self._block_ssa_manager.insert(name, res)
 
+        return res
+
+    def _process_return_op(self, op: ReturnOp) -> SSA:
+        _, return_val = self._block_ssa_manager.get(op.arguments[0])
+        res = Func.ret(
+            return_val,
+            self._block_ssa_manager.get_egg_type(op.arguments.types[0]),
+        )
+        self._block_ssa_manager.insert("func.ret", res)
         return res
