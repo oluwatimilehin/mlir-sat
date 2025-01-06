@@ -6,6 +6,7 @@ from xdsl.dialects import (
     arith,
     func,
     linalg,
+    memref,
     printf,
     scf,
     tensor,
@@ -26,8 +27,9 @@ def context() -> MLContext:
     ctx.load_dialect(arith.Arith)
     ctx.load_dialect(Builtin)
     ctx.load_dialect(func.Func)
-    ctx.load_dialect(printf.Printf)
     ctx.load_dialect(linalg.Linalg)
+    ctx.load_dialect(memref.MemRef)
+    ctx.load_dialect(printf.Printf)
     ctx.load_dialect(scf.Scf)
     ctx.load_dialect(tensor.Tensor)
     return ctx
@@ -43,7 +45,6 @@ if __name__ == "__main__":
 
     mlir_files = [f for f in Path(models_path).iterdir() if f.suffix == ".mlir"]
 
-    # mlir_files = ["bench/3mm/3mm.mlir"]
     for mlir_file in mlir_files:
         file_name = Path(mlir_file).stem
         print(f"Processing mlir: {file_name}")

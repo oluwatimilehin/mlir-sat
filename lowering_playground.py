@@ -54,8 +54,6 @@ from xdsl.transforms import (
 )
 
 
-
-
 def context() -> MLContext:
     ctx = MLContext()
     ctx.load_dialect(arith.Arith)
@@ -128,16 +126,22 @@ if __name__ == "__main__":
 
         print(f"Value: {io.getvalue()}")
 
-        shape = (2,2)
+        shape = (2, 2)
 
         a_len = prod(shape)
         b_len = prod(shape)
         c_len = prod(shape)
 
-        a_shaped = ShapedArray(TypedPtr.new_float64([i + 1 for i in range(a_len)]), shape)
-        b_shaped = ShapedArray(TypedPtr.new_float64([(i + 1) / 100 for i in range(b_len)]), shape)
+        a_shaped = ShapedArray(
+            TypedPtr.new_float64([i + 1 for i in range(a_len)]), shape
+        )
+        b_shaped = ShapedArray(
+            TypedPtr.new_float64([(i + 1) / 100 for i in range(b_len)]), shape
+        )
         # riscv_c_shaped = ShapedArray(TypedPtr.new_float64([0.0] * c_len), shape)
-        c_shaped = ShapedArray(TypedPtr.new_float64([(i + 4) / 100 for i in range(b_len)] * c_len), shape)
+        c_shaped = ShapedArray(
+            TypedPtr.new_float64([(i + 4) / 100 for i in range(b_len)] * c_len), shape
+        )
 
         print(f"A: {a_shaped}")
         print(f"B: {b_shaped}")
@@ -150,6 +154,9 @@ if __name__ == "__main__":
             riscv_interpreter, context(), include_wgpu=False, include_onnx=False
         )
         riscv_interpreter.register_implementations(RiscvCfFunctions())
-        riscv_interpreter.call_op("distribute", (a_shaped.data_ptr.raw, b_shaped.data_ptr.raw, c_shaped.data_ptr.raw))
+        riscv_interpreter.call_op(
+            "distribute",
+            (a_shaped.data_ptr.raw, b_shaped.data_ptr.raw, c_shaped.data_ptr.raw),
+        )
 
         print(f"Result: {c_shaped}")
