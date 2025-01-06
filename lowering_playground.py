@@ -1,13 +1,9 @@
-import os
-import subprocess
-import sys
-
 from io import StringIO
-from pathlib import Path
 
 from xdsl.context import MLContext
 from xdsl.dialects import (
     arith,
+    bufferization,
     func,
     linalg,
     memref,
@@ -18,10 +14,12 @@ from xdsl.dialects import (
     riscv_func,
     riscv_scf,
     scf,
-    bufferization,
     tensor,
 )
 from xdsl.dialects.builtin import Builtin
+from xdsl.interpreter import Interpreter, OpCounter
+from xdsl.interpreters import register_implementations
+from xdsl.interpreters.shaped_array import ShapedArray
 from xdsl.parser import Parser as IRParser
 from xdsl.passes import PipelinePass
 from xdsl.printer import Printer
@@ -31,6 +29,7 @@ from xdsl.backend.riscv.lowering import (
     convert_arith_to_riscv,
     convert_func_to_riscv_func,
     convert_memref_to_riscv,
+    convert_print_format_to_riscv_debug,
     convert_riscv_scf_to_riscv_cf,
     convert_scf_to_riscv_scf,
 )
@@ -38,22 +37,23 @@ from xdsl.backend.riscv.lowering import (
 from xdsl.transforms import (
     canonicalize,
     convert_linalg_to_loops,
-    convert_memref_to_ptr,
     dead_code_elimination,
-    empty_tensor_to_alloc_tensor,
-    convert_ptr_to_riscv,
     lower_affine,
-    loop_hoist_memref,
     lower_riscv_func,
-    memref_stream_legalize,
     mlir_opt,
     reconcile_unrealized_casts,
     riscv_register_allocation,
 )
 
 
+def emulate_riscv(program: str):
+    from xdsl.interpreters.riscv_emulator import run_riscv
+
+    run_riscv(program, unlimited_regs=False, verbosity=3)
+
+
 def context() -> MLContext:
-    ctx = MLContext(allow_unregistered=True)
+    ctx = MLContext()
     ctx.load_dialect(arith.Arith)
     ctx.load_attr(bufferization.Bufferization)
     ctx.load_dialect(Builtin)
@@ -71,61 +71,64 @@ def context() -> MLContext:
     return ctx
 
 
-def transform(module_op, ctx):
-    passes = PipelinePass(
+def transform(module_op, ctx, is_linalg=False):
+    # passes_list =
+
+    linalg_lowering = (
         [
             mlir_opt.MLIROptPass(
-                arguments=[
-                    "--linalg-generalize-named-ops",
-                    "--mlir-print-op-generic",
-                    "--one-shot-bufferize=bufferize-function-boundaries=true",
-                    # "--one-shot-bufferize=unknown-type-conversion=identity-layout-map",
-                ]
-            ),
-            empty_tensor_to_alloc_tensor.EmptyTensorToAllocTensorPass(),
-            convert_linalg_to_loops.ConvertLinalgToLoopsPass(),
-            # canonicalize.CanonicalizePass(),
+                arguments=["--allow-unregistered-dialect", "--convert-linalg-to-loops"],
+            )
+        ]
+        if is_linalg
+        else []
+    )
+
+    passes = PipelinePass(
+        [
+            canonicalize.CanonicalizePass(),
             lower_affine.LowerAffinePass(),
-            # mlir_opt.MLIROptPass(
-            #     arguments=["--expand-strided-metadata", "--memref-expand"]
-            # ),
+            *linalg_lowering,
             convert_func_to_riscv_func.ConvertFuncToRiscvFuncPass(),
             convert_memref_to_riscv.ConvertMemrefToRiscvPass(),
             convert_arith_to_riscv.ConvertArithToRiscvPass(),
+            convert_print_format_to_riscv_debug.ConvertPrintFormatToRiscvDebugPass(),
             convert_scf_to_riscv_scf.ConvertScfToRiscvPass(),
-            convert_memref_to_riscv.ConvertMemrefToRiscvPass(),
-            convert_memref_to_ptr.ConvertMemrefToPtr(),
-            convert_ptr_to_riscv.ConvertPtrToRiscvPass(),
             dead_code_elimination.DeadCodeElimination(),
             reconcile_unrealized_casts.ReconcileUnrealizedCastsPass(),
+            canonicalize.CanonicalizePass(),
             riscv_register_allocation.RISCVRegisterAllocation(),
             canonicalize.CanonicalizePass(),
             lower_riscv_func.LowerRISCVFunc(),
             convert_riscv_scf_to_riscv_cf.ConvertRiscvScfToRiscvCfPass(),
-            # reconcile_unrealized_casts.ReconcileUnrealizedCastsPass(),
         ]
     ).passes
 
-    printer = Printer()
     for pipeline_pass in passes:
         print(f"Applying: {pipeline_pass.name}")
         pipeline_pass.apply(ctx, module_op)
 
-        # transform(module_op, context())
-        # printer.print(module_op)
-
 
 if __name__ == "__main__":
-    mlir_file = "generic.mlir"
+    mlir_file = "data/mlir/linalg.mlir"
     with open(mlir_file) as f:
         mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")
         module_op = mlir_parser.parse_module()
 
         printer = Printer()
-        transform(module_op, context())
+        transform(module_op, context(), True)
         printer.print(module_op)
 
         io = StringIO()
         riscv.print_assembly(module_op, io)
 
         print(f"Value: {io.getvalue()}")
+
+        riscv_op_counter = OpCounter()
+        riscv_interpreter = Interpreter(module_op, listener=riscv_op_counter)
+
+        register_implementations(
+            riscv_interpreter, context(), include_wgpu=False, include_onnx=False
+        )
+
+        riscv_interpreter.call_op("main", ())
