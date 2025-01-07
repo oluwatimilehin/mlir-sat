@@ -69,10 +69,6 @@ if __name__ == "__main__":
             print(f"Extracting expression")
             extracted = egraph.extract(egglog_region)
 
-            # egg_expr = egraph.let("expr", egg_expr)
-
-            # egraph.display()
-
             converted_module_op = Converter.to_mlir(extracted, context())
             converted_mlir_file = f"{converted_path}/{file_name}.mlir"
 

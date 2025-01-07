@@ -20,32 +20,14 @@ def arith_distributive(op1: SSA, op2: SSA, op3: SSA, out1: SSA, out2: SSA, out3:
     ).to(Arith.muli(op2, Arith.addi(op1, op3, out2), out3))
 
 
-# def is_power_of_2(num: i64Like):
-#     # egraph = EGraph()
-#     # print(f"num type: {num.eval()}")
-#     # num = egraph.eval(num.eval())
-#     # print(f"num: {num}")
-#     egraph = EGraph()
-#     num = egraph.eval(PyObject.from_int(num))
-
-#     if num <= 0:
-#         return False, None
-
-#     is_power = (num & (num - 1)) == 0
-
-#     if is_power:
-#         exponent = num.bit_length() - 1
-#         return True, exponent
-#     else:
-#         return False, None
-
-
-# @rewrites_ruleset.register
-# def mul_to_left_shift(const: i64Like, op: SSA, const_out: SSA, mul_out: SSA):
-#     yield rewrite(Arith.muli(op, Arith.constant(const, const_out), mul_out)).to(
-#         Arith.shli(op, Arith.constant(is_power_of_2(const)[1], const_out), mul_out),
-#         is_power_of_2(const)[0],
-#     )
+@rewrites_ruleset.register
+def mul_to_left_shift(op: SSA, const_out: SSA, mul_out: SSA):
+    for i in range(1, 10):
+        power_of_2 = 2**i
+        shift_amount = i
+        yield rewrite(
+            Arith.muli(op, Arith.constant(power_of_2, const_out), mul_out)
+        ).to(Arith.shli(op, Arith.constant(shift_amount, const_out), mul_out))
 
 
 @rewrites_ruleset.register
@@ -76,9 +58,6 @@ def linalg_commutative(op1: SSA, op2: SSA, out: SSA, return_val: SSA):
     yield rewrite(Linalg.add(op1, op2, out, return_val)).to(
         Linalg.add(op2, op1, out, return_val)
     )
-    # yield rewrite(Linalg.matmul(op1, op2, out, return_val)).to(
-    #     Linalg.matmul(op2, op1, out, return_val)
-    # )
 
 
 @rewrites_ruleset.register
@@ -100,23 +79,6 @@ def linalg_distributive(
         add_out,
         add_ret_val,
     )
-
-    # yield rule(eq(op).to(rhs)).then(
-    #     set_(op).to(
-    #         Linalg.matmul(
-    #             matmul_op2,
-    #             Linalg.add(
-    #                 matmul_one_op1, matmul_two_op1, matmul_two_out, matmul_two_ret
-    #             ),
-    #             add_out,
-    #             add_ret_val,
-    #         )
-    #     ),
-    #     delete(
-    #         Linalg.matmul(matmul_one_op1, matmul_op2, matmul_one_out, matmul_one_ret),
-    #     ),
-    #     delete(Linalg.matmul(matmul_two_op1, matmul_op2, matmul_two_out, matmul_two_ret))
-    # )
 
     yield rewrite(
         Linalg.add(

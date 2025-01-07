@@ -186,7 +186,7 @@ class ArithShliAst(OperationAST):
 
     @property
     def dependencies(self):
-        return [arg for arg in [self.x, self.y] if isinstance(arg, OperationAST)]
+        return [arg for arg in [self.lhs, self.rhs] if isinstance(arg, OperationAST)]
 
     def __str__(self) -> str:
         result = f"%{self.out.name} = arith.shli %{self.lhs.name}, %{self.rhs.name} : {self.out.type} \n"
