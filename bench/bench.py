@@ -9,6 +9,8 @@ from math import prod
 from pathlib import Path
 from typing import Dict
 
+import matplotlib.pyplot as plt
+import numpy as np
 
 from egglog import *
 
@@ -168,9 +170,7 @@ def run_arith(riscv_interpreter):
 
 
 dialect_to_runner = {"linalg": run_linalg, "arith": run_arith}
-BenchmarkResult = namedtuple(
-        "BenchmarkResult", "num_ops mean_latency median_latency"
-    )
+BenchmarkResult = namedtuple("BenchmarkResult", "num_ops mean_latency median_latency")
 
 
 def benchmark(
@@ -223,8 +223,71 @@ def benchmark(
 
     return name_to_results
 
+
 def visualize(results: Dict[str, Dict[str, BenchmarkResult]]):
-    pass
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Extract data for mean latency
+    mean_latency_data = {}
+    for dialect, results in data.items():
+        mean_latency_data[dialect] = {
+            dialect_name: results[dialect_name].mean_latency for dialect_name in results
+        }
+
+    # Extract data for num_ops
+    num_ops_data = {}
+    for dialect, results in data.items():
+        num_ops_data[dialect] = {
+            dialect_name: results[dialect_name].num_ops for dialect_name in results
+        }
+
+    # Calculate speedup for mean latency
+    mean_latency_speedup = {}
+    for dialect, latencies in mean_latency_data.items():
+        baseline_latency = latencies["baseline"]
+        mean_latency_speedup[dialect] = {
+            dialect_name: baseline_latency / latency
+            for dialect_name, latency in latencies.items()
+        }
+
+    # Calculate speedup for num_ops
+    num_ops_speedup = {}
+    for dialect, num_ops in num_ops_data.items():
+        baseline_num_ops = num_ops["baseline"]
+        num_ops_speedup[dialect] = {
+            dialect_name: num_ops[dialect_name] / baseline_num_ops
+            for dialect_name, num_ops in num_ops.items()
+        }
+
+    # Create bar plots
+    dialects = list(mean_latency_speedup.keys())
+    x = np.arange(len(dialects))
+    width = 0.2
+
+    # Mean Latency Plot
+    for i, dialect in enumerate(dialects):
+        speedups = list(mean_latency_speedup[dialect].values())
+        axes[0].bar(x + i * width, speedups, width, label=dialect)
+
+    axes[0].set_xlabel("Dialect")
+    axes[0].set_ylabel("Mean Latency Speedup")
+    axes[0].set_xticks(x + width, dialects)
+    axes[0].set_title("Mean Latency Speedup")
+    axes[0].legend()
+
+    # Num_ops Plot
+    for i, dialect in enumerate(dialects):
+        speedups = list(num_ops_speedup[dialect].values())
+        axes[1].bar(x + i * width, speedups, width, label=dialect)
+
+    axes[1].set_xlabel("Dialect")
+    axes[1].set_ylabel("Num Ops Speedup")
+    axes[1].set_xticks(x + width, dialects)
+    axes[1].set_title("Num Ops Speedup")
+    axes[1].legend()
+
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -272,6 +335,7 @@ if __name__ == "__main__":
                 f.write(str(extracted))
 
             benchmark_res = benchmark(ctx, module_op, converted_module_op, dialect)
-            results = results | {dialect : benchmark_res}
+            results = results | {dialect: benchmark_res}
 
     print(results)
+    visualize(results)
