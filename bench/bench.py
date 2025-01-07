@@ -224,70 +224,81 @@ def benchmark(
     return name_to_results
 
 
-def visualize(results: Dict[str, Dict[str, BenchmarkResult]]):
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-    # Extract data for mean latency
+def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     mean_latency_data = {}
+    num_ops_data = {}
+
     for dialect, results in data.items():
         mean_latency_data[dialect] = {
-            dialect_name: results[dialect_name].mean_latency for dialect_name in results
+            category: results[category].mean_latency
+            for category in results
+            if category != "baseline"
         }
-
-    # Extract data for num_ops
-    num_ops_data = {}
-    for dialect, results in data.items():
         num_ops_data[dialect] = {
-            dialect_name: results[dialect_name].num_ops for dialect_name in results
+            category: results[category].num_ops
+            for category in results
+            if category != "baseline"
         }
 
-    # Calculate speedup for mean latency
     mean_latency_speedup = {}
     for dialect, latencies in mean_latency_data.items():
-        baseline_latency = latencies["baseline"]
+        baseline_latency = data[dialect]["baseline"].mean_latency
         mean_latency_speedup[dialect] = {
-            dialect_name: baseline_latency / latency
-            for dialect_name, latency in latencies.items()
+            category: baseline_latency / latency
+            for category, latency in latencies.items()
         }
 
-    # Calculate speedup for num_ops
     num_ops_speedup = {}
     for dialect, num_ops in num_ops_data.items():
-        baseline_num_ops = num_ops["baseline"]
+        baseline_num_ops = data[dialect]["baseline"].num_ops
         num_ops_speedup[dialect] = {
-            dialect_name: num_ops[dialect_name] / baseline_num_ops
-            for dialect_name, num_ops in num_ops.items()
+            category: baseline_num_ops / num_ops
+            for category, num_ops in num_ops.items()
         }
 
     # Create bar plots
     dialects = list(mean_latency_speedup.keys())
-    x = np.arange(len(dialects))
-    width = 0.2
+    categories = ["canonicalized", "eqsat", "eqsat+canonicalized"]
+    width = 0.2  # Adjust bar width for better grouping
+    x = np.arange(len(dialects))  # Dialects on the x-axis
 
     # Mean Latency Plot
-    for i, dialect in enumerate(dialects):
-        speedups = list(mean_latency_speedup[dialect].values())
-        axes[0].bar(x + i * width, speedups, width, label=dialect)
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-    axes[0].set_xlabel("Dialect")
-    axes[0].set_ylabel("Mean Latency Speedup")
-    axes[0].set_xticks(x + width, dialects)
-    axes[0].set_title("Mean Latency Speedup")
-    axes[0].legend()
+    for i, category in enumerate(categories):
+        # Extract speedups for each dialect for the current category
+        speedups = [mean_latency_speedup[dialect][category] for dialect in dialects]
+        # Adjust bar positions for grouping
+        bar_positions = x + (i - len(categories) / 2) * width + width / 2
+        ax.bar(bar_positions, speedups, width, label=category, alpha=0.8)
 
-    # Num_ops Plot
-    for i, dialect in enumerate(dialects):
-        speedups = list(num_ops_speedup[dialect].values())
-        axes[1].bar(x + i * width, speedups, width, label=dialect)
+    ax.set_xlabel("Benchmark")
+    ax.set_ylabel("Mean Latency Speedup (log x)")
+    ax.set_xticks(x)
+    ax.set_xticklabels(dialects)
+    ax.set_title("Mean Latency Speedup Per Benchmark")
+    ax.legend(title="Optimization Passes")
+    plt.savefig(f"{dir}/mean_latency_speedup.jpg", dpi=300)
+    plt.close(fig)
 
-    axes[1].set_xlabel("Dialect")
-    axes[1].set_ylabel("Num Ops Speedup")
-    axes[1].set_xticks(x + width, dialects)
-    axes[1].set_title("Num Ops Speedup")
-    axes[1].legend()
+    # Num Ops Plot
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-    plt.tight_layout()
-    plt.show()
+    for i, category in enumerate(categories):
+        # Extract speedups for each dialect for the current category
+        speedups = [num_ops_speedup[dialect][category] for dialect in dialects]
+        # Adjust bar positions for grouping
+        bar_positions = x + (i - len(categories) / 2) * width + width / 2
+        ax.bar(bar_positions, speedups, width, label=category, alpha=0.8)
+
+    ax.set_xlabel("Benchmark")
+    ax.set_ylabel("Num Ops Reduction")
+    ax.set_xticks(x)
+    ax.set_xticklabels(dialects)
+    ax.set_title("Num Ops Reduction Per Benchmark")
+    ax.legend(title="Optimization Passes")
+    plt.savefig(f"{dir}/num_ops_reduction.jpg", dpi=300)
+    plt.close(fig)
 
 
 if __name__ == "__main__":
@@ -338,4 +349,4 @@ if __name__ == "__main__":
             results = results | {dialect: benchmark_res}
 
     print(results)
-    visualize(results)
+    visualize(results_dir, results)
