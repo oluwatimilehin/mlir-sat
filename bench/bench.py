@@ -225,12 +225,12 @@ def benchmark(
 
 
 def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
-    mean_latency_data = {}
+    median_latency_data = {}
     num_ops_data = {}
 
     for dialect, results in data.items():
-        mean_latency_data[dialect] = {
-            category: results[category].mean_latency
+        median_latency_data[dialect] = {
+            category: results[category].median_latency
             for category in results
             if category != "baseline"
         }
@@ -240,63 +240,76 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
             if category != "baseline"
         }
 
-    mean_latency_speedup = {}
-    for dialect, latencies in mean_latency_data.items():
-        baseline_latency = data[dialect]["baseline"].mean_latency
-        mean_latency_speedup[dialect] = {
+    median_latency_speedup = {}
+    for dialect, latencies in median_latency_data.items():
+        baseline_latency = data[dialect]["baseline"].median_latency
+        median_latency_speedup[dialect] = {
             category: baseline_latency / latency
             for category, latency in latencies.items()
         }
 
-    num_ops_speedup = {}
+    num_ops_reduction = {}
     for dialect, num_ops in num_ops_data.items():
         baseline_num_ops = data[dialect]["baseline"].num_ops
-        num_ops_speedup[dialect] = {
+        num_ops_reduction[dialect] = {
             category: baseline_num_ops / num_ops
             for category, num_ops in num_ops.items()
         }
 
-    # Create bar plots
-    dialects = list(mean_latency_speedup.keys())
+    #
     categories = ["canonicalized", "eqsat", "eqsat+canonicalized"]
-    width = 0.2  # Adjust bar width for better grouping
-    x = np.arange(len(dialects))  # Dialects on the x-axis
+    dialects = list(median_latency_speedup.keys())
+    x = np.arange(len(dialects))
+    width = 0.2
 
-    # Mean Latency Plot
+    # --- Mean Latency Plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
-
     for i, category in enumerate(categories):
-        # Extract speedups for each dialect for the current category
-        speedups = [mean_latency_speedup[dialect][category] for dialect in dialects]
-        # Adjust bar positions for grouping
+        speedups = [median_latency_speedup[dialect][category] for dialect in dialects]
+        # Offset the bar positions for each category
         bar_positions = x + (i - len(categories) / 2) * width + width / 2
         ax.bar(bar_positions, speedups, width, label=category, alpha=0.8)
 
-    ax.set_xlabel("Benchmark")
-    ax.set_ylabel("Mean Latency Speedup (log x)")
-    ax.set_xticks(x)
+    # Add a horizontal baseline at 1 (logarithmic baseline)
+    ax.axhline(y=1.0, color="black", linestyle="--", linewidth=1, label="Baseline")
+
+    ax.set_ylim(bottom=1)
+    ax.set_xticks(x)  # Center x-axis ticks on dialect positions
     ax.set_xticklabels(dialects)
-    ax.set_title("Mean Latency Speedup Per Benchmark")
-    ax.legend(title="Optimization Passes")
-    plt.savefig(f"{dir}/mean_latency_speedup.jpg", dpi=300)
+    ax.set_xlabel("Benchmark", fontweight="bold", fontsize=12)
+    ax.set_ylabel("Median Latency Speedup", fontweight="bold", fontsize=12)
+    ax.set_title(
+        "Median Latency Speedup Per Benchmark",
+        fontweight="bold",
+        fontsize=14,
+    )
+    ax.legend(title="Optimization Passes", fontsize=10)
+    plt.tight_layout()
+    plt.savefig(f"{dir}/median_latency_speedup.jpg", dpi=300)
     plt.close(fig)
 
-    # Num Ops Plot
+    # --- Num Ops Reduction Plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
-
     for i, category in enumerate(categories):
-        # Extract speedups for each dialect for the current category
-        speedups = [num_ops_speedup[dialect][category] for dialect in dialects]
-        # Adjust bar positions for grouping
+        # Extract reductions for the current category across all dialects
+        reductions = [num_ops_reduction[dialect][category] for dialect in dialects]
+        # Offset the bar positions for each category
         bar_positions = x + (i - len(categories) / 2) * width + width / 2
-        ax.bar(bar_positions, speedups, width, label=category, alpha=0.8)
+        ax.bar(bar_positions, reductions, width, label=category, alpha=0.8)
 
-    ax.set_xlabel("Benchmark")
-    ax.set_ylabel("Num Ops Reduction")
-    ax.set_xticks(x)
+    # Add a horizontal baseline at 1 (logarithmic baseline)
+    ax.axhline(y=1.0, color="black", linestyle="--", linewidth=1, label="Baseline")
+
+    # Aesthetics
+    # ax.set_yscale("log")
+    ax.set_ylim(bottom=1)  # Ensure the y-axis starts at 1
+    ax.set_xticks(x)  # Center x-axis ticks on dialect positions
     ax.set_xticklabels(dialects)
-    ax.set_title("Num Ops Reduction Per Benchmark")
-    ax.legend(title="Optimization Passes")
+    ax.set_xlabel("Benchmark", fontweight="bold", fontsize=12)
+    ax.set_ylabel("Num Ops Reduction", fontweight="bold", fontsize=12)
+    ax.set_title("Num Ops Reduction Per Benchmark", fontweight="bold", fontsize=14)
+    ax.legend(title="Optimization Passes", fontsize=10)
+    plt.tight_layout()
     plt.savefig(f"{dir}/num_ops_reduction.jpg", dpi=300)
     plt.close(fig)
 
