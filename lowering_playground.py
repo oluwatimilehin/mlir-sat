@@ -74,12 +74,13 @@ def context() -> MLContext:
 
 
 def transform(module_op, ctx, is_linalg=False):
-    # passes_list =
-
     linalg_lowering = (
         [
             mlir_opt.MLIROptPass(
-                arguments=["--allow-unregistered-dialect", "--convert-linalg-to-loops"],
+                arguments=[
+                    "--allow-unregistered-dialect",
+                    "--convert-linalg-to-loops",
+                ],
             )
         ]
         if is_linalg
@@ -111,7 +112,7 @@ def transform(module_op, ctx, is_linalg=False):
 
 
 def run_linalg():
-    mlir_file = "data/mlir/linalg.mlir"
+    mlir_file = "data/converted/linalg.mlir"
     print("---Running Linalg---")
     with open(mlir_file) as f:
         mlir_parser = IRParser(context(), f.read(), name=f"{mlir_file}")
@@ -127,25 +128,28 @@ def run_linalg():
         # print(f"Value: {io.getvalue()}")
 
         shape = (2, 2)
-
-        a_len = prod(shape)
-        b_len = prod(shape)
-        c_len = prod(shape)
+        mat_len = prod(shape)
 
         a_shaped = ShapedArray(
-            TypedPtr.new_float64([i + 1 for i in range(a_len)]), shape
+            TypedPtr.new_float64([i + 1 for i in range(mat_len)]), shape
         )
         b_shaped = ShapedArray(
-            TypedPtr.new_float64([(i + 1) / 100 for i in range(b_len)]), shape
+            TypedPtr.new_float64([(i + 1) / 100 for i in range(mat_len)]), shape
         )
-        # riscv_c_shaped = ShapedArray(TypedPtr.new_float64([0.0] * c_len), shape)
+
         c_shaped = ShapedArray(
-            TypedPtr.new_float64([(i + 4) / 100 for i in range(b_len)] * c_len), shape
+            TypedPtr.new_float64([(i + 4) / 100 for i in range(mat_len)] * mat_len),
+            shape,
         )
+
+        ab_buffer = ShapedArray(TypedPtr.new_float64([0.0] * mat_len), shape)
+        ac_buffer = ShapedArray(TypedPtr.new_float64([0.0] * mat_len), shape)
+        out = ShapedArray(TypedPtr.new_float64([0.0] * mat_len), shape)
 
         print(f"A: {a_shaped}")
         print(f"B: {b_shaped}")
         print(f"C: {c_shaped}")
+        print(f"D: {out}")
 
         riscv_op_counter = OpCounter()
         riscv_interpreter = Interpreter(module_op, listener=riscv_op_counter)
@@ -156,10 +160,17 @@ def run_linalg():
         riscv_interpreter.register_implementations(RiscvCfFunctions())
         riscv_interpreter.call_op(
             "distribute",
-            (a_shaped.data_ptr.raw, b_shaped.data_ptr.raw, c_shaped.data_ptr.raw),
+            (
+                a_shaped.data_ptr.raw,
+                b_shaped.data_ptr.raw,
+                ab_buffer.data_ptr.raw,
+                c_shaped.data_ptr.raw,
+                ac_buffer.data_ptr.raw,
+                out.data_ptr.raw,
+            ),
         )
 
-        print(f"Result: {c_shaped}")
+        print(f"Result: {out}")
 
 
 def run_arith():

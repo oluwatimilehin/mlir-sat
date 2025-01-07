@@ -1,9 +1,4 @@
 _SSA_1 = SSALiteral.value("A", SSAType.memref(2, 2, "f64"))
-_SSA_2 = SSALiteral.value("C", SSAType.memref(2, 2, "f64"))
-_SSA_3 = Linalg.matmul(
-    _SSA_1, SSALiteral.value("B", SSAType.memref(2, 2, "f64")), Memref.alloc(SSALiteral.value("AB", SSAType.memref(2, 2, "f64"))), SSALiteral.value("", SSAType.none())
-)
-_SSA_4 = Linalg.matmul(_SSA_1, _SSA_2, Memref.alloc(SSALiteral.value("AC", SSAType.memref(2, 2, "f64"))), SSALiteral.value("", SSAType.none()))
 Region(
     Vec[Block](
         Block(
@@ -11,11 +6,31 @@ Region(
             Vec[SSA](
                 Func.func(
                     "distribute",
-                    Vec[SSA](_SSA_1, SSALiteral.value("B", SSAType.memref(2, 2, "f64")), _SSA_2),
                     Vec[SSA](
-                        Linalg.add(_SSA_3, _SSA_4, _SSA_2, SSALiteral.value("", SSAType.none())),
-                        Memref.dealloc(_SSA_3),
-                        Memref.dealloc(_SSA_4),
+                        _SSA_1,
+                        SSALiteral.value("B", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("AB", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("C", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("AC", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("D", SSAType.memref(2, 2, "f64")),
+                    ),
+                    Vec[SSA](
+                        Linalg.add(
+                            Linalg.matmul(
+                                _SSA_1,
+                                SSALiteral.value("B", SSAType.memref(2, 2, "f64")),
+                                SSALiteral.value("AB", SSAType.memref(2, 2, "f64")),
+                                SSALiteral.value("", SSAType.none()),
+                            ),
+                            Linalg.matmul(
+                                _SSA_1,
+                                SSALiteral.value("C", SSAType.memref(2, 2, "f64")),
+                                SSALiteral.value("AC", SSAType.memref(2, 2, "f64")),
+                                SSALiteral.value("", SSAType.none()),
+                            ),
+                            SSALiteral.value("D", SSAType.memref(2, 2, "f64")),
+                            SSALiteral.value("", SSAType.none()),
+                        ),
                         Func.ret(Arith.constant(0, SSALiteral.value("c0", SSAType.integer(32))), SSAType.integer(32)),
                     ),
                     SSAType.integer(32),
