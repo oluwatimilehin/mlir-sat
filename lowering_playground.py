@@ -21,11 +21,6 @@ from xdsl.dialects.builtin import Builtin
 from xdsl.interpreter import Interpreter, OpCounter
 from xdsl.interpreters import register_implementations
 from xdsl.interpreters.riscv_cf import RiscvCfFunctions
-from xdsl.interpreters.riscv_debug import RiscvDebugFunctions
-from xdsl.interpreters.riscv_func import RiscvFuncFunctions
-from xdsl.interpreters.riscv_libc import RiscvLibcFunctions
-from xdsl.interpreters.riscv_scf import RiscvScfFunctions
-from xdsl.interpreters.scf import ScfFunctions
 from xdsl.interpreters.shaped_array import ShapedArray
 from xdsl.interpreters.utils.ptr import TypedPtr
 
@@ -78,7 +73,6 @@ def transform(module_op, ctx, is_linalg=False):
         [
             mlir_opt.MLIROptPass(
                 arguments=[
-                    "--allow-unregistered-dialect",
                     "--convert-linalg-to-loops",
                 ],
             )
@@ -89,9 +83,9 @@ def transform(module_op, ctx, is_linalg=False):
 
     passes = PipelinePass(
         [
-            canonicalize.CanonicalizePass(),
             lower_affine.LowerAffinePass(),
             *linalg_lowering,
+            canonicalize.CanonicalizePass(),
             convert_func_to_riscv_func.ConvertFuncToRiscvFuncPass(),
             convert_memref_to_riscv.ConvertMemrefToRiscvPass(),
             convert_arith_to_riscv.ConvertArithToRiscvPass(),
@@ -99,9 +93,7 @@ def transform(module_op, ctx, is_linalg=False):
             convert_scf_to_riscv_scf.ConvertScfToRiscvPass(),
             dead_code_elimination.DeadCodeElimination(),
             reconcile_unrealized_casts.ReconcileUnrealizedCastsPass(),
-            canonicalize.CanonicalizePass(),
             riscv_register_allocation.RISCVRegisterAllocation(),
-            canonicalize.CanonicalizePass(),
             lower_riscv_func.LowerRISCVFunc(),
             convert_riscv_scf_to_riscv_cf.ConvertRiscvScfToRiscvCfPass(),
         ]

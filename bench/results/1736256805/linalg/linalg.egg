@@ -1,0 +1,35 @@
+Region(
+    Vec[Block](
+        Block(
+            Vec[SSA].empty(),
+            Vec[SSA](
+                Func.func(
+                    "distribute",
+                    Vec[SSA](
+                        SSALiteral.value("A", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("B", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("AB", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("C", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("AC", SSAType.memref(2, 2, "f64")),
+                        SSALiteral.value("D", SSAType.memref(2, 2, "f64")),
+                    ),
+                    Vec[SSA](
+                        Linalg.matmul(
+                            SSALiteral.value("A", SSAType.memref(2, 2, "f64")),
+                            Linalg.add(
+                                SSALiteral.value("B", SSAType.memref(2, 2, "f64")),
+                                SSALiteral.value("C", SSAType.memref(2, 2, "f64")),
+                                SSALiteral.value("AC", SSAType.memref(2, 2, "f64")),
+                                SSALiteral.value("", SSAType.none()),
+                            ),
+                            SSALiteral.value("D", SSAType.memref(2, 2, "f64")),
+                            SSALiteral.value("", SSAType.none()),
+                        ),
+                        Func.ret(Arith.constant(0, SSALiteral.value("c0", SSAType.integer(32))), SSAType.integer(32)),
+                    ),
+                    SSAType.integer(32),
+                )
+            ),
+        )
+    )
+)

@@ -1,3 +1,6 @@
-egglog
 anywidget
+egglog
+matplotlib
+numpy
 xdsl
+
