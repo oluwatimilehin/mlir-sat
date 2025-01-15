@@ -1,0 +1,4 @@
+[submodule "xdsl"]
+	path = xdsl
+	url = https://github.com/oluwatimilehin/xdsl.git
+	branch = extensions

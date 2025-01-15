@@ -15,9 +15,9 @@ def arith_commutative(x: SSA, y: SSA, out: SSA):
 
 @rewrites_ruleset.register
 def arith_distributive(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA, out3: SSA):
-    yield rewrite(
-        Arith.addi(Arith.muli(x, y, out1), Arith.muli(z, y, out2), out3)
-    ).to(Arith.muli(y, Arith.addi(x, z, out2), out3))
+    yield rewrite(Arith.addi(Arith.muli(x, y, out1), Arith.muli(z, y, out2), out3)).to(
+        Arith.muli(y, Arith.addi(x, z, out2), out3)
+    )
 
 
 @rewrites_ruleset.register
@@ -46,11 +46,7 @@ def constant_folding(
             Arith.constant(y, y_out),
             mul_two_out,
         )
-    ).to(
-        Arith.muli(
-            Arith.constant(x * y, y_out), z, mul_two_out
-        )
-    )
+    ).to(Arith.muli(Arith.constant(x * y, y_out), z, mul_two_out))
 
 
 @rewrites_ruleset.register
@@ -72,7 +68,6 @@ def linalg_distributive(
     add_out: SSA,
     add_ret_val: SSA,
 ):
-
     yield rewrite(
         Linalg.add(
             Linalg.matmul(x, z, matmul_one_out, matmul_one_ret),

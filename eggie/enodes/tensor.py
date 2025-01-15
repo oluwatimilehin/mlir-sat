@@ -18,5 +18,3 @@ class Tensor(Expr):
     @method()
     @classmethod
     def empty(self, args: Vec[SSA], out: SSA) -> SSA: ...
-
-

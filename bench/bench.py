@@ -199,12 +199,9 @@ def benchmark(
 
     for name, module_op in name_to_module_op.items():
         riscv_op_counter = OpCounter()
-        riscv_interpreter = Interpreter(module_op, listener=riscv_op_counter)
+        riscv_interpreter = Interpreter(module_op, listeners=(riscv_op_counter,))
 
-        register_implementations(
-            riscv_interpreter, context(), include_wgpu=False, include_onnx=False
-        )
-        riscv_interpreter.register_implementations(RiscvCfFunctions())
+        register_implementations(riscv_interpreter, context())
 
         times = []
         # warmup

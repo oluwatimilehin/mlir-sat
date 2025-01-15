@@ -2,5 +2,5 @@ anywidget
 egglog
 matplotlib
 numpy
-xdsl
+xdsl @ git+https://github.com/oluwatimilehin/xdsl.git@extensions
 
