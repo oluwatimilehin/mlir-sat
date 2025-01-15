@@ -1,5 +1,3 @@
-
-This is a prototype compiler for a very specific type of MLIR input built for a class project.
-
-Constraints:
-- Only accepts integer types for now
+- To get the benchmarks to work, I had to:
+  - add an interpreter for SLLOp on line 321 of the riscv interpreter (riscv.py)
+  - 

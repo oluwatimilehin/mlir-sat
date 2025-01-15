@@ -8,16 +8,16 @@ rewrites_ruleset = ruleset(name="rewrites")
 
 
 @rewrites_ruleset.register
-def arith_commutative(op1: SSA, op2: SSA, out: SSA):
-    yield rewrite(Arith.addi(op1, op2, out)).to(Arith.addi(op2, op1, out))
-    yield rewrite(Arith.muli(op1, op2, out)).to(Arith.muli(op2, op1, out))
+def arith_commutative(x: SSA, y: SSA, out: SSA):
+    yield rewrite(Arith.addi(x, y, out)).to(Arith.addi(y, x, out))
+    yield rewrite(Arith.muli(x, y, out)).to(Arith.muli(y, x, out))
 
 
 @rewrites_ruleset.register
-def arith_distributive(op1: SSA, op2: SSA, op3: SSA, out1: SSA, out2: SSA, out3: SSA):
+def arith_distributive(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA, out3: SSA):
     yield rewrite(
-        Arith.addi(Arith.muli(op1, op2, out1), Arith.muli(op3, op2, out2), out3)
-    ).to(Arith.muli(op2, Arith.addi(op1, op3, out2), out3))
+        Arith.addi(Arith.muli(x, y, out1), Arith.muli(z, y, out2), out3)
+    ).to(Arith.muli(y, Arith.addi(x, z, out2), out3))
 
 
 @rewrites_ruleset.register
@@ -32,40 +32,39 @@ def mul_to_left_shift(op: SSA, const_out: SSA, mul_out: SSA):
 
 @rewrites_ruleset.register
 def constant_folding(
-    const_one: i64,
-    const_two: i64,
-    const_one_out: SSA,
-    const_two_out: SSA,
-    mul_op: SSA,
+    x: i64,
+    y: i64,
+    x_out: SSA,
+    y_out: SSA,
+    z: SSA,
     mul_one_out: SSA,
     mul_two_out: SSA,
 ):
     yield rewrite(
         Arith.muli(
-            Arith.muli(mul_op, Arith.constant(const_one, const_one_out), mul_one_out),
-            Arith.constant(const_two, const_two_out),
+            Arith.muli(z, Arith.constant(x, x_out), mul_one_out),
+            Arith.constant(y, y_out),
             mul_two_out,
         )
     ).to(
         Arith.muli(
-            Arith.constant(const_one * const_two, const_two_out), mul_op, mul_two_out
+            Arith.constant(x * y, y_out), z, mul_two_out
         )
     )
 
 
 @rewrites_ruleset.register
-def linalg_commutative(op1: SSA, op2: SSA, out: SSA, return_val: SSA):
-    yield rewrite(Linalg.add(op1, op2, out, return_val)).to(
-        Linalg.add(op2, op1, out, return_val)
+def linalg_commutative(x: SSA, y: SSA, out: SSA, return_val: SSA):
+    yield rewrite(Linalg.add(x, y, out, return_val)).to(
+        Linalg.add(y, x, out, return_val)
     )
 
 
 @rewrites_ruleset.register
 def linalg_distributive(
-    rhs: SSA,
-    matmul_one_op1: SSA,
-    matmul_two_op1: SSA,
-    matmul_op2: SSA,
+    x: SSA,
+    y: SSA,
+    z: SSA,
     matmul_one_out: SSA,
     matmul_two_out: SSA,
     matmul_one_ret: SSA,
@@ -73,24 +72,18 @@ def linalg_distributive(
     add_out: SSA,
     add_ret_val: SSA,
 ):
-    op = Linalg.add(
-        Linalg.matmul(matmul_one_op1, matmul_op2, matmul_one_out, matmul_one_ret),
-        Linalg.matmul(matmul_two_op1, matmul_op2, matmul_two_out, matmul_two_ret),
-        add_out,
-        add_ret_val,
-    )
 
     yield rewrite(
         Linalg.add(
-            Linalg.matmul(matmul_one_op1, matmul_op2, matmul_one_out, matmul_one_ret),
-            Linalg.matmul(matmul_two_op1, matmul_op2, matmul_two_out, matmul_two_ret),
+            Linalg.matmul(x, z, matmul_one_out, matmul_one_ret),
+            Linalg.matmul(y, z, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
     ).to(
         Linalg.matmul(
-            matmul_op2,
-            Linalg.add(matmul_one_op1, matmul_two_op1, matmul_two_out, matmul_two_ret),
+            z,
+            Linalg.add(x, y, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
@@ -98,15 +91,15 @@ def linalg_distributive(
 
     yield rewrite(
         Linalg.add(
-            Linalg.matmul(matmul_op2, matmul_one_op1, matmul_one_out, matmul_one_ret),
-            Linalg.matmul(matmul_two_op1, matmul_op2, matmul_two_out, matmul_two_ret),
+            Linalg.matmul(z, x, matmul_one_out, matmul_one_ret),
+            Linalg.matmul(y, z, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
     ).to(
         Linalg.matmul(
-            matmul_op2,
-            Linalg.add(matmul_one_op1, matmul_two_op1, matmul_two_out, matmul_two_ret),
+            z,
+            Linalg.add(x, y, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
@@ -114,15 +107,15 @@ def linalg_distributive(
 
     yield rewrite(
         Linalg.add(
-            Linalg.matmul(matmul_op2, matmul_one_op1, matmul_one_out, matmul_one_ret),
-            Linalg.matmul(matmul_op2, matmul_two_op1, matmul_two_out, matmul_two_ret),
+            Linalg.matmul(z, x, matmul_one_out, matmul_one_ret),
+            Linalg.matmul(z, y, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
     ).to(
         Linalg.matmul(
-            matmul_op2,
-            Linalg.add(matmul_one_op1, matmul_two_op1, matmul_two_out, matmul_two_ret),
+            z,
+            Linalg.add(x, y, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
@@ -130,20 +123,16 @@ def linalg_distributive(
 
     yield rewrite(
         Linalg.add(
-            Linalg.matmul(matmul_op2, matmul_one_op1, matmul_one_out, matmul_one_ret),
-            Linalg.matmul(matmul_two_op1, matmul_op2, matmul_two_out, matmul_two_ret),
+            Linalg.matmul(z, x, matmul_one_out, matmul_one_ret),
+            Linalg.matmul(y, z, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
     ).to(
         Linalg.matmul(
-            matmul_op2,
-            Linalg.add(matmul_one_op1, matmul_two_op1, matmul_two_out, matmul_two_ret),
+            z,
+            Linalg.add(x, y, matmul_two_out, matmul_two_ret),
             add_out,
             add_ret_val,
         )
     )
-
-    # yield rewrite(
-    #     Arith.addi(Arith.muli(op1, op2, matmul_one_out), Arith.muli(op3, op2, matmul_two_out), out3)
-    # ).to(Arith.muli(op2, Arith.addi(op1, op3, matmul_two_out), out3))

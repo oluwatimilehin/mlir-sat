@@ -19,6 +19,6 @@ class Arith(Expr):
     @classmethod
     def muli(cls, op1: SSA, op2: SSA, out: SSA) -> SSA: ...
 
-    @method(cost=100)
+    @method(cost=50)
     @classmethod
     def shli(cls, lhs: SSA, rhs: SSA, out: SSA) -> SSA: ...

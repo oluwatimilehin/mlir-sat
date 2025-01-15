@@ -52,7 +52,7 @@ from xdsl.backend.riscv.lowering import (
 )
 
 from xdsl.transforms import (
-    canonicalize,
+    canonicalize as canonicalization,
     dead_code_elimination,
     lower_affine,
     lower_riscv_func,
@@ -98,13 +98,14 @@ def lower(module_op, ctx, canonicalize=True, is_linalg=False):
         else []
     )
 
-    canonicalize = (
+    canonicalize_pass = (
         [
             mlir_opt.MLIROptPass(
                 arguments=[
                     "--canonicalize",
                 ],
-            )
+            ),
+            canonicalization.CanonicalizePass(),
         ]
         if canonicalize
         else []
@@ -114,7 +115,7 @@ def lower(module_op, ctx, canonicalize=True, is_linalg=False):
         [
             lower_affine.LowerAffinePass(),
             *linalg_lowering,
-            *canonicalize,
+            *canonicalize_pass,
             convert_func_to_riscv_func.ConvertFuncToRiscvFuncPass(),
             convert_memref_to_riscv.ConvertMemrefToRiscvPass(),
             convert_arith_to_riscv.ConvertArithToRiscvPass(),

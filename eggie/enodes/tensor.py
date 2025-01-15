@@ -9,7 +9,7 @@ class Tensor(Expr):
 
     @method()
     @classmethod
-    def empty(self, args: Vec[SSA], out: SSA) -> SSA: ...
+    def cast(self, source: SSA, dest: SSAType, out: SSA) -> SSA: ...
 
     @method()
     @classmethod
@@ -17,4 +17,6 @@ class Tensor(Expr):
 
     @method()
     @classmethod
-    def cast(self, source: SSA, dest: SSAType, out: SSA) -> SSA: ...
+    def empty(self, args: Vec[SSA], out: SSA) -> SSA: ...
+
+
