@@ -148,6 +148,29 @@ class ArithAddiAst(OperationAST):
 
 
 @dataclass
+class ArithDivsiAst(OperationAST):
+    x: SSAExprAST
+    y: SSAExprAST
+    out: SSAExprAST
+
+    @property
+    def name(self):
+        return self.out.name
+
+    @property
+    def type(self):
+        return self.out.type
+
+    @property
+    def dependencies(self):
+        return [arg for arg in [self.x, self.y] if isinstance(arg, OperationAST)]
+
+    def __str__(self) -> str:
+        result = f"%{self.out.name} = arith.divsi %{self.x.name}, %{self.y.name} : {self.out.type} \n"
+        return result
+
+
+@dataclass
 class ArithMuliAst(OperationAST):
     x: SSAExprAST
     y: SSAExprAST

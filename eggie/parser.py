@@ -242,6 +242,17 @@ class EgglogParser:
                     self.lexer.next_token(), EgglogTokenKind.SSA
                 )
                 val = ArithAddiAst(x, y, out)
+            case "divsi":
+                x = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                y = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                out = self._validate_and_parse(
+                    self.lexer.next_token(), EgglogTokenKind.SSA
+                )
+                val = ArithDivsiAst(x, y, out)
             case "muli":
                 x = self._validate_and_parse(
                     self.lexer.next_token(), EgglogTokenKind.SSA

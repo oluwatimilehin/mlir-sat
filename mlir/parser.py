@@ -10,7 +10,7 @@ from xdsl.dialects.builtin import (
     ShapedType,
     TensorType,
 )
-from xdsl.dialects.arith import AddiOp, ConstantOp, MuliOp
+from xdsl.dialects.arith import AddiOp, ConstantOp, DivSIOp, MuliOp
 from xdsl.dialects.func import FuncOp, ReturnOp, CallOp
 from xdsl.dialects.linalg import AddOp, FillOp, MatmulOp
 from xdsl.dialects.memref import AllocOp, DeallocOp
@@ -204,6 +204,8 @@ class MLIRParser:
                 return res
             case AddiOp.name:
                 return self._process_arith_addi(op)
+            case DivSIOp.name:
+                return self._process_arith_divsi(op)
             case MuliOp.name:
                 return self._process_arith_muli(op)
             case _:
@@ -271,6 +273,14 @@ class MLIRParser:
         op2 = self._block_ssa_manager.get(op.operands[1])[1]
         name, out = self._block_ssa_manager.get(op.results[0])
         res = Arith.addi(op1, op2, out)
+        self._block_ssa_manager.insert(name, res)
+        return res
+
+    def _process_arith_divsi(self, op: AddiOp) -> SSA:
+        op1 = self._block_ssa_manager.get(op.operands[0])[1]
+        op2 = self._block_ssa_manager.get(op.operands[1])[1]
+        name, out = self._block_ssa_manager.get(op.results[0])
+        res = Arith.divsi(op1, op2, out)
         self._block_ssa_manager.insert(name, res)
         return res
 

@@ -15,6 +15,10 @@ class Arith(Expr):
     @classmethod
     def constant(cls, val: i64Like, out: SSA) -> SSA: ...
 
+    @method(cost=500)
+    @classmethod
+    def divsi(cls, op1: SSA, op2: SSA, out: SSA) -> SSA: ...
+
     @method(cost=200)
     @classmethod
     def muli(cls, op1: SSA, op2: SSA, out: SSA) -> SSA: ...

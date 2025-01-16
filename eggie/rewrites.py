@@ -1,6 +1,6 @@
 from __future__ import annotations
 from egglog import *
-from eggie.enodes.base import SSA
+from eggie.enodes.base import SSA, SSALiteral, SSAType
 from eggie.enodes.arith import Arith
 from eggie.enodes.linalg import Linalg
 
@@ -21,13 +21,44 @@ def arith_distributive(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA, out3: SSA):
 
 
 @rewrites_ruleset.register
+def arith_associative(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA):
+    yield rewrite(Arith.divsi(Arith.muli(x, y, out1), z, out2)).to(
+        Arith.muli(x, Arith.divsi(y, z, out1), out2)
+    )
+
+
+@rewrites_ruleset.register
+def mul_identity(x: SSA, mul_out: SSA, const_out: SSA):
+    yield rewrite(
+        Arith.muli(x, Arith.constant(1, const_out), mul_out), subsume=True
+    ).to(x)
+
+
+@rewrites_ruleset.register
+def arith_divsi_by_self(x: SSA, div_out: SSA):
+    yield rewrite(Arith.divsi(x, x, div_out)).to(
+        Arith.constant(1, SSALiteral.value(f"mlirsat_const_1", SSAType.integer(32)))
+    )
+
+
+@rewrites_ruleset.register
 def mul_to_left_shift(op: SSA, const_out: SSA, mul_out: SSA):
     for i in range(1, 10):
         power_of_2 = 2**i
-        shift_amount = i
         yield rewrite(
             Arith.muli(op, Arith.constant(power_of_2, const_out), mul_out)
-        ).to(Arith.shli(op, Arith.constant(shift_amount, const_out), mul_out))
+        ).to(
+            Arith.shli(
+                op,
+                Arith.constant(
+                    i,
+                    SSALiteral.value(
+                        f"mlirsat_mul_left_shift_const{i}", SSAType.integer(32)
+                    ),
+                ),
+                mul_out,
+            )
+        )
 
 
 @rewrites_ruleset.register

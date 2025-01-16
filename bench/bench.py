@@ -85,7 +85,13 @@ def context() -> MLContext:
     return ctx
 
 
-def lower(module_op, ctx, canonicalize=True, is_linalg=False):
+def lower(
+    module_op,
+    ctx,
+    is_linalg=False,
+    mlir_canonicalize=False,
+    xdsl_canonicalize=False,
+):
     linalg_lowering = (
         [
             mlir_opt.MLIROptPass(
@@ -98,18 +104,18 @@ def lower(module_op, ctx, canonicalize=True, is_linalg=False):
         else []
     )
 
-    canonicalize_pass = (
-        [
+    canonicalize_pass = []
+    if mlir_canonicalize:
+        canonicalize_pass.append(
             mlir_opt.MLIROptPass(
                 arguments=[
                     "--canonicalize",
                 ],
-            ),
-            canonicalization.CanonicalizePass(),
-        ]
-        if canonicalize
-        else []
-    )
+            )
+        )
+
+    if xdsl_canonicalize:
+        canonicalize_pass.append(canonicalization.CanonicalizePass())
 
     passes = PipelinePass(
         [
@@ -170,28 +176,31 @@ def run_arith(riscv_interpreter):
     return riscv_interpreter.call_op("main", ())[0]
 
 
-dialect_to_runner = {"linalg": run_linalg, "arith": run_arith}
+dialect_to_runner = {"linalg": run_linalg, "arith": run_arith, "classic": run_arith}
 BenchmarkResult = namedtuple("BenchmarkResult", "num_ops mean_latency median_latency")
 
 
 def benchmark(
-    ctx: MLContext, baseline_mlir: ModuleOp, converted_mlir: ModuleOp, dialect: str
+    ctx: MLContext, baseline_mlir: ModuleOp, eqsat_mlir: ModuleOp, dialect: str
 ):
-    canonicalized = copy.deepcopy(baseline_mlir)
-    eqsat_and_canonicalized = copy.deepcopy(converted_mlir)
+    mlir_canonicalized = copy.deepcopy(baseline_mlir)
+    xdsl_canonicalized = copy.deepcopy(baseline_mlir)
+    eqsat_and_canonicalized = copy.deepcopy(eqsat_mlir)
 
     is_linalg = dialect == "linalg"
 
-    lower(baseline_mlir, ctx, False, is_linalg)
-    lower(canonicalized, ctx, True, is_linalg)
-    lower(converted_mlir, ctx, False, is_linalg)
-    lower(eqsat_and_canonicalized, ctx, True, is_linalg)
+    lower(baseline_mlir, ctx, is_linalg)
+    lower(mlir_canonicalized, ctx, is_linalg, mlir_canonicalize=True)
+    lower(xdsl_canonicalized, ctx, is_linalg, xdsl_canonicalize=True)
+    lower(eqsat_mlir, ctx, is_linalg)
+    lower(eqsat_and_canonicalized, ctx, is_linalg, mlir_canonicalize=True)
 
     name_to_module_op = {
-        "baseline": baseline_mlir,
-        "canonicalized": canonicalized,
-        "eqsat": converted_mlir,
-        "eqsat+canonicalized": eqsat_and_canonicalized,
+        "Baseline": baseline_mlir,
+        "MLIR Canonicalization": mlir_canonicalized,
+        "xDSL Canonicalization": mlir_canonicalized,
+        "MLIRSat": eqsat_mlir,
+        "MLIRSat + MLIR Canonicalization": eqsat_and_canonicalized,
     }
 
     runner = dialect_to_runner[dialect]
@@ -208,7 +217,7 @@ def benchmark(
         print(f"Result for {name}: {runner(riscv_interpreter)}")
         num_ops = sum(dict(riscv_op_counter.ops).values())
 
-        for _ in range(10):
+        for _ in range(50):
             start_time = time.perf_counter()
             runner(riscv_interpreter)
             end_time = time.perf_counter()
@@ -226,21 +235,27 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     median_latency_data = {}
     num_ops_data = {}
 
+    # TODO: I shouldn't hardcode the same values as above
+    categories = [
+        "Baseline",
+        "MLIR Canonicalization",
+        "xDSL Canonicalization",
+        "MLIRSat",
+        "MLIRSat + MLIR Canonicalization",
+    ]
+
+    categories = [cat for cat in categories if cat.lower() != "baseline"]
     for dialect, results in data.items():
         median_latency_data[dialect] = {
-            category: results[category].median_latency
-            for category in results
-            if category != "baseline"
+            category: results[category].median_latency for category in categories
         }
         num_ops_data[dialect] = {
-            category: results[category].num_ops
-            for category in results
-            if category != "baseline"
+            category: results[category].num_ops for category in categories
         }
 
     median_latency_speedup = {}
     for dialect, latencies in median_latency_data.items():
-        baseline_latency = data[dialect]["baseline"].median_latency
+        baseline_latency = data[dialect]["Baseline"].median_latency
         median_latency_speedup[dialect] = {
             category: baseline_latency / latency
             for category, latency in latencies.items()
@@ -248,32 +263,32 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
 
     num_ops_reduction = {}
     for dialect, num_ops in num_ops_data.items():
-        baseline_num_ops = data[dialect]["baseline"].num_ops
+        baseline_num_ops = data[dialect]["Baseline"].num_ops
         num_ops_reduction[dialect] = {
             category: baseline_num_ops / num_ops
             for category, num_ops in num_ops.items()
         }
 
-    #
-    categories = ["canonicalized", "eqsat", "eqsat+canonicalized"]
-    dialects = list(median_latency_speedup.keys())
-    x = np.arange(len(dialects))
+    benchmarks = list(median_latency_speedup.keys())
+    x = np.arange(len(benchmarks))
     width = 0.2
 
-    # --- Mean Latency Plot ---
+    print(f"HELLO:Median latency speedup: {median_latency_speedup}")
+    print(f"HELLO: Num ops reduction: {num_ops_reduction}")
+
+    # --- Median Latency Plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
     for i, category in enumerate(categories):
-        speedups = [median_latency_speedup[dialect][category] for dialect in dialects]
+        speedups = [median_latency_speedup[dialect][category] for dialect in benchmarks]
         # Offset the bar positions for each category
         bar_positions = x + (i - len(categories) / 2) * width + width / 2
         ax.bar(bar_positions, speedups, width, label=category, alpha=0.8)
 
     # Add a horizontal baseline at 1 (logarithmic baseline)
     ax.axhline(y=1.0, color="black", linestyle="--", linewidth=1, label="Baseline")
-
     ax.set_ylim(bottom=1)
-    ax.set_xticks(x)  # Center x-axis ticks on dialect positions
-    ax.set_xticklabels(dialects)
+    ax.set_xticks(x)  
+    ax.set_xticklabels(benchmarks)
     ax.set_xlabel("Benchmark", fontweight="bold", fontsize=12)
     ax.set_ylabel("Median Latency Speedup", fontweight="bold", fontsize=12)
     ax.set_title(
@@ -289,8 +304,7 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     # --- Num Ops Reduction Plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
     for i, category in enumerate(categories):
-        # Extract reductions for the current category across all dialects
-        reductions = [num_ops_reduction[dialect][category] for dialect in dialects]
+        reductions = [num_ops_reduction[benchmark][category] for benchmark in benchmarks]
         # Offset the bar positions for each category
         bar_positions = x + (i - len(categories) / 2) * width + width / 2
         ax.bar(bar_positions, reductions, width, label=category, alpha=0.8)
@@ -302,7 +316,7 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     # ax.set_yscale("log")
     ax.set_ylim(bottom=1)  # Ensure the y-axis starts at 1
     ax.set_xticks(x)  # Center x-axis ticks on dialect positions
-    ax.set_xticklabels(dialects)
+    ax.set_xticklabels(benchmarks)
     ax.set_xlabel("Benchmark", fontweight="bold", fontsize=12)
     ax.set_ylabel("Num Ops Reduction", fontweight="bold", fontsize=12)
     ax.set_title("Num Ops Reduction Per Benchmark", fontweight="bold", fontsize=14)
@@ -336,7 +350,7 @@ if __name__ == "__main__":
 
             egraph = EGraph(save_egglog_string=True)
             egglog_region = egraph.let("expr", egglog_region)
-            egraph.run(1000, ruleset=rewrites_ruleset)
+            egraph.run(10, ruleset=rewrites_ruleset)
 
             print(f"Extracting expression")
             extracted = egraph.extract(egglog_region)

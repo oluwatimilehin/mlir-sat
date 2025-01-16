@@ -62,12 +62,16 @@ if __name__ == "__main__":
 
             egraph = EGraph(save_egglog_string=True)
             egglog_region = egraph.let("expr", egglog_region)
-            egraph.run(1000, ruleset=rewrites_ruleset)
+            egraph.run(10, ruleset=rewrites_ruleset)
 
-            egraph.display()
+            # egraph.display()
 
             print(f"Extracting expression")
             extracted = egraph.extract(egglog_region)
+
+            converted_egg_file = f"{converted_path}/{file_name}.egg"
+            with open(converted_egg_file, "w") as f:
+                f.write(str(extracted))
 
             converted_module_op = Converter.to_mlir(extracted, context())
             converted_mlir_file = f"{converted_path}/{file_name}.mlir"
@@ -77,7 +81,3 @@ if __name__ == "__main__":
                 printer.print(converted_module_op)
 
             # assert module_op.is_structurally_equivalent(converted_module_op)
-
-            converted_egg_file = f"{converted_path}/{file_name}.egg"
-            with open(converted_egg_file, "w") as f:
-                f.write(str(extracted))
