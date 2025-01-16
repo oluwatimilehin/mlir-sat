@@ -276,18 +276,64 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     print(f"HELLO:Median latency speedup: {median_latency_speedup}")
     print(f"HELLO: Num ops reduction: {num_ops_reduction}")
 
-    # --- Median Latency Plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
-    for i, category in enumerate(categories):
-        speedups = [median_latency_speedup[dialect][category] for dialect in benchmarks]
-        # Offset the bar positions for each category
-        bar_positions = x + (i - len(categories) / 2) * width + width / 2
-        ax.bar(bar_positions, speedups, width, label=category, alpha=0.8)
 
-    # Add a horizontal baseline at 1 (logarithmic baseline)
-    ax.axhline(y=1.0, color="black", linestyle="--", linewidth=1, label="Baseline")
-    ax.set_ylim(bottom=1)
-    ax.set_xticks(x)  
+    for i, category in enumerate(categories):
+        speedups = [median_latency_speedup[bench][category] for bench in benchmarks]
+        bar_positions = x + (i - len(categories) / 2) * width + width / 2
+
+        # For each speedup value, determine if it's above or below 1
+        for pos, speedup in zip(bar_positions, speedups):
+            if speedup > 1:
+                # Bar goes up from 1 to speedup
+                height = speedup - 1
+                bottom = 1
+            else:
+                # Bar goes down from 1 to speedup
+                height = 1 - speedup
+                bottom = speedup
+
+            ax.bar(
+                pos,
+                height,
+                width,
+                bottom=bottom,
+                label=category if pos == bar_positions[0] else "",
+                alpha=0.8,
+                color=f"C{i}",
+            )
+
+    ax.axhline(y=1.0, color="black", linestyle="--", linewidth=1)
+
+    max_speedup = max(
+        [max(median_latency_speedup[d][c] for d in benchmarks) for c in categories]
+    )
+    min_speedup = min(
+        [min(median_latency_speedup[d][c] for d in benchmarks) for c in categories]
+    )
+    padding_above = (max_speedup - 1) * 0.1
+    padding_below = (1 - min_speedup) * 0.7
+
+    ax.set_ylim(1 - padding_below, max_speedup + padding_above)
+
+    ax.set_xticks(x)
+    ax.grid(True, alpha=0.2)
+
+    # Add value labels on the bars
+    for i, category in enumerate(categories):
+        speedups = [median_latency_speedup[bench][category] for bench in benchmarks]
+        bar_positions = x + (i - len(categories) / 2) * width + width / 2
+
+        for pos, speedup in zip(bar_positions, speedups):
+            ax.text(
+                pos,
+                speedup,
+                f"{speedup:.2f}",
+                ha="center",
+                va="bottom" if speedup > 1 else "top",
+                fontsize=8,
+            )
+
     ax.set_xticklabels(benchmarks)
     ax.set_xlabel("Benchmark", fontweight="bold", fontsize=12)
     ax.set_ylabel("Median Latency Speedup", fontweight="bold", fontsize=12)
@@ -301,10 +347,12 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     plt.savefig(f"{dir}/median_latency_speedup.jpg", dpi=300)
     plt.close(fig)
 
-    # --- Num Ops Reduction Plot ---
+    # --- Num Ops Reduction Plot --- #TODO: reduction plot should use percentages; what it was reduced by what percentage?
     fig, ax = plt.subplots(figsize=(10, 6))
     for i, category in enumerate(categories):
-        reductions = [num_ops_reduction[benchmark][category] for benchmark in benchmarks]
+        reductions = [
+            num_ops_reduction[benchmark][category] for benchmark in benchmarks
+        ]
         # Offset the bar positions for each category
         bar_positions = x + (i - len(categories) / 2) * width + width / 2
         ax.bar(bar_positions, reductions, width, label=category, alpha=0.8)
@@ -350,7 +398,7 @@ if __name__ == "__main__":
 
             egraph = EGraph(save_egglog_string=True)
             egglog_region = egraph.let("expr", egglog_region)
-            egraph.run(10, ruleset=rewrites_ruleset)
+            egraph.run(15, ruleset=rewrites_ruleset)
 
             print(f"Extracting expression")
             extracted = egraph.extract(egglog_region)
