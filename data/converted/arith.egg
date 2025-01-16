@@ -11,8 +11,16 @@ Region(
                         Func.ret(
                             Arith.addi(
                                 Arith.addi(
-                                    Arith.shli(SSALiteral.value("arg0", _SSAType_1), Arith.constant(3, SSALiteral.value("c4", _SSAType_1)), SSALiteral.value("1", _SSAType_1)),
-                                    Arith.shli(SSALiteral.value("arg1", _SSAType_1), Arith.constant(7, SSALiteral.value("c16", _SSAType_1)), SSALiteral.value("3", _SSAType_1)),
+                                    Arith.shli(
+                                        SSALiteral.value("arg0", _SSAType_1),
+                                        Arith.constant(3, SSALiteral.value("mlirsat_mul_left_shift_const3", _SSAType_1)),
+                                        SSALiteral.value("1", _SSAType_1),
+                                    ),
+                                    Arith.shli(
+                                        SSALiteral.value("arg1", _SSAType_1),
+                                        Arith.constant(7, SSALiteral.value("mlirsat_mul_left_shift_const7", _SSAType_1)),
+                                        SSALiteral.value("3", _SSAType_1),
+                                    ),
                                     SSALiteral.value("4", _SSAType_1),
                                 ),
                                 Arith.muli(SSALiteral.value("arg0", _SSAType_1), SSALiteral.value("arg1", _SSAType_1), SSALiteral.value("5", _SSAType_1)),

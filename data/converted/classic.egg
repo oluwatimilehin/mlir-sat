@@ -1,0 +1,15 @@
+Region(
+    Vec[Block](
+        Block(
+            Vec[SSA].empty(),
+            Vec[SSA](
+                Func.func(
+                    "classic",
+                    Vec[SSA](SSALiteral.value("a", SSAType.integer(32))),
+                    Vec[SSA](Func.ret(SSALiteral.value("a", SSAType.integer(32)), SSAType.integer(32))),
+                    SSAType.integer(32),
+                )
+            ),
+        )
+    )
+)

@@ -1,0 +1,28 @@
+Region(
+    Vec[Block](
+        Block(
+            Vec[SSA].empty(),
+            Vec[SSA](
+                Func.func(
+                    "classic",
+                    Vec[SSA](SSALiteral.value("a", SSAType.integer(32))),
+                    Vec[SSA](
+                        Func.ret(
+                            Arith.divsi(
+                                Arith.muli(
+                                    SSALiteral.value("a", SSAType.integer(32)),
+                                    Arith.constant(2, SSALiteral.value("c2", SSAType.integer(32))),
+                                    SSALiteral.value("mul", SSAType.integer(32)),
+                                ),
+                                Arith.constant(2, SSALiteral.value("c2", SSAType.integer(32))),
+                                SSALiteral.value("div", SSAType.integer(32)),
+                            ),
+                            SSAType.integer(32),
+                        )
+                    ),
+                    SSAType.integer(32),
+                )
+            ),
+        )
+    )
+)
