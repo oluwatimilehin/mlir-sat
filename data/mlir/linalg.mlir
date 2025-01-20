@@ -8,7 +8,7 @@ func.func @distribute(%A : memref<2x2xf64>, %B : memref<2x2xf64>, %AB: memref<2x
   linalg.matmul ins(%A, %C : memref<2x2xf64>, memref<2x2xf64>)
                 outs(%AC : memref<2x2xf64>)
 
-  // Compute A × B + A * C
+  // Compute A × B + A x C
   linalg.add ins(%AB, %AC : memref<2x2xf64>, memref<2x2xf64>)
              outs(%D : memref<2x2xf64>)
 

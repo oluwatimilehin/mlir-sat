@@ -1,4 +1,5 @@
 builtin.module {
+  // computes ab * (4a/a) + (8b/b) 
   func.func @test_mult_shifts(%arg0 : i32, %arg1 : i32) -> i32 {
     // Calculate arg0 * arg1
     %0 = arith.muli %arg0, %arg1 : i32

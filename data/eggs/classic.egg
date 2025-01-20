@@ -21,7 +21,18 @@ Region(
                         )
                     ),
                     SSAType.integer(32),
-                )
+                ),
+                Func.func(
+                    "main",
+                    Vec[SSA](),
+                    Vec[SSA](
+                        Func.ret(
+                            Func.call("@classic", Vec[SSA](Arith.constant(1000, SSALiteral.value("c", SSAType.integer(32)))), SSALiteral.value("result", SSAType.integer(32))),
+                            SSAType.integer(32),
+                        )
+                    ),
+                    SSAType.integer(32),
+                ),
             ),
         )
     )

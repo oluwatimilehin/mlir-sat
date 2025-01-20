@@ -213,9 +213,13 @@ def benchmark(
         register_implementations(riscv_interpreter, context())
 
         times = []
-        # warmup
+
         print(f"Result for {name}: {runner(riscv_interpreter)}")
         num_ops = sum(dict(riscv_op_counter.ops).values())
+
+        # warmup
+        for _ in range(30):
+            runner(riscv_interpreter)
 
         for _ in range(50):
             start_time = time.perf_counter()
@@ -245,26 +249,26 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     ]
 
     categories = [cat for cat in categories if cat.lower() != "baseline"]
-    for dialect, results in data.items():
-        median_latency_data[dialect] = {
+    for benchmark, results in data.items():
+        median_latency_data[benchmark] = {
             category: results[category].median_latency for category in categories
         }
-        num_ops_data[dialect] = {
+        num_ops_data[benchmark] = {
             category: results[category].num_ops for category in categories
         }
 
     median_latency_speedup = {}
-    for dialect, latencies in median_latency_data.items():
-        baseline_latency = data[dialect]["Baseline"].median_latency
-        median_latency_speedup[dialect] = {
+    for benchmark, latencies in median_latency_data.items():
+        baseline_latency = data[benchmark]["Baseline"].median_latency
+        median_latency_speedup[benchmark] = {
             category: baseline_latency / latency
             for category, latency in latencies.items()
         }
 
     num_ops_reduction = {}
-    for dialect, num_ops in num_ops_data.items():
-        baseline_num_ops = data[dialect]["Baseline"].num_ops
-        num_ops_reduction[dialect] = {
+    for benchmark, num_ops in num_ops_data.items():
+        baseline_num_ops = data[benchmark]["Baseline"].num_ops
+        num_ops_reduction[benchmark] = {
             category: baseline_num_ops / num_ops
             for category, num_ops in num_ops.items()
         }
@@ -273,11 +277,9 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     x = np.arange(len(benchmarks))
     width = 0.2
 
-    print(f"HELLO:Median latency speedup: {median_latency_speedup}")
-    print(f"HELLO: Num ops reduction: {num_ops_reduction}")
-
     fig, ax = plt.subplots(figsize=(10, 6))
 
+    # TODO: simplify this plot
     for i, category in enumerate(categories):
         speedups = [median_latency_speedup[bench][category] for bench in benchmarks]
         bar_positions = x + (i - len(categories) / 2) * width + width / 2
@@ -312,8 +314,9 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
         [min(median_latency_speedup[d][c] for d in benchmarks) for c in categories]
     )
     padding_above = (max_speedup - 1) * 0.1
-    padding_below = (1 - min_speedup) * 0.7
+    padding_below = (1 - min_speedup) * 1.5
 
+    ax.axhline(y=1.0, color="black", linestyle="--", linewidth=1, label="Baseline")
     ax.set_ylim(1 - padding_below, max_speedup + padding_above)
 
     ax.set_xticks(x)
@@ -380,6 +383,8 @@ if __name__ == "__main__":
 
     results_dir = f"{current_dir}/results/{int(time.time())}"
     os.makedirs(results_dir)
+
+    print(f"Storing results in {results_dir}")
 
     mlir_files = [f for f in Path(mlir_dir).iterdir() if f.suffix == ".mlir"]
     ctx = context()
