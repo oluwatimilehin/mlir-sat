@@ -14,6 +14,7 @@ def arith_commutative(x: SSA, y: SSA, out: SSA):
 
 
 @rewrites_ruleset.register
+# xy + zy => y (x +)
 def arith_distributive(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA, out3: SSA):
     yield rewrite(Arith.addi(Arith.muli(x, y, out1), Arith.muli(z, y, out2), out3)).to(
         Arith.muli(y, Arith.addi(x, z, out2), out3)
@@ -21,6 +22,7 @@ def arith_distributive(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA, out3: SSA):
 
 
 @rewrites_ruleset.register
+# (x.y)/z => x.(y/z)
 def arith_associative(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA):
     yield rewrite(Arith.divsi(Arith.muli(x, y, out1), z, out2)).to(
         Arith.muli(x, Arith.divsi(y, z, out1), out2)
