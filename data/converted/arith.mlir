@@ -1,6 +1,6 @@
 builtin.module {
-  func.func @test_mult_shifts(%arg0 : i32, %arg1 : i32) -> i32 {
-    %0 = arith.muli %arg0, %arg1 : i32
+  func.func @test_mult_shifts(%a : i32, %b : i32) -> i32 {
+    %0 = arith.muli %a, %b : i32
     %c4 = arith.constant 4 : i32
     %c8 = arith.constant 8 : i32
     %1 = arith.addi %c4, %c8 : i32

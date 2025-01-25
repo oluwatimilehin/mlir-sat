@@ -1,22 +1,22 @@
 builtin.module {
-  // computes ab * (4a/a) + (8b/b) 
-  func.func @test_mult_shifts(%arg0 : i32, %arg1 : i32) -> i32 {
-    // Calculate arg0 * arg1
-    %0 = arith.muli %arg0, %arg1 : i32
+  // computes ab * ((4a/a) + (8b/b))
+  func.func @test_mult_shifts(%a : i32, %b : i32) -> i32 {
+    // Calculate a * b
+    %0 = arith.muli %a, %b : i32
     
-    // Calculate arg0 * 4
+    // Calculate a * 4
     %c4 = arith.constant 4 : i32
-    %1 = arith.muli %arg0, %c4 : i32
+    %1 = arith.muli %a, %c4 : i32
     
-    // Divide (arg0 * 4) by arg0
-    %2 = arith.divsi %1, %arg0 : i32
+    // Divide (a * 4) by a
+    %2 = arith.divsi %1, %a : i32
     
-    // Calculate arg1 * 8
+    // Calculate b * 8
     %c8 = arith.constant 8 : i32
-    %3 = arith.muli %arg1, %c8 : i32
+    %3 = arith.muli %b, %c8 : i32
     
-    // Divide (arg1 * 8) by arg1
-    %4 = arith.divsi %3, %arg1 : i32
+    // Divide (b * 8) by b
+    %4 = arith.divsi %3, %b : i32
     
     // Add the division results
     %5 = arith.addi %2, %4 : i32

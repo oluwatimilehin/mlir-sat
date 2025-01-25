@@ -6,20 +6,20 @@ Region(
             Vec[SSA](
                 Func.func(
                     "test_mult_shifts",
-                    Vec[SSA](SSALiteral.value("arg0", _SSAType_1), SSALiteral.value("arg1", _SSAType_1)),
+                    Vec[SSA](SSALiteral.value("a", _SSAType_1), SSALiteral.value("b", _SSAType_1)),
                     Vec[SSA](
                         Func.ret(
                             Arith.muli(
-                                Arith.muli(SSALiteral.value("arg0", _SSAType_1), SSALiteral.value("arg1", _SSAType_1), SSALiteral.value("0", _SSAType_1)),
+                                Arith.muli(SSALiteral.value("a", _SSAType_1), SSALiteral.value("b", _SSAType_1), SSALiteral.value("0", _SSAType_1)),
                                 Arith.addi(
                                     Arith.divsi(
-                                        Arith.muli(SSALiteral.value("arg0", _SSAType_1), Arith.constant(4, SSALiteral.value("c4", _SSAType_1)), SSALiteral.value("1", _SSAType_1)),
-                                        SSALiteral.value("arg0", _SSAType_1),
+                                        Arith.muli(SSALiteral.value("a", _SSAType_1), Arith.constant(4, SSALiteral.value("c4", _SSAType_1)), SSALiteral.value("1", _SSAType_1)),
+                                        SSALiteral.value("a", _SSAType_1),
                                         SSALiteral.value("2", _SSAType_1),
                                     ),
                                     Arith.divsi(
-                                        Arith.muli(SSALiteral.value("arg1", _SSAType_1), Arith.constant(8, SSALiteral.value("c8", _SSAType_1)), SSALiteral.value("3", _SSAType_1)),
-                                        SSALiteral.value("arg1", _SSAType_1),
+                                        Arith.muli(SSALiteral.value("b", _SSAType_1), Arith.constant(8, SSALiteral.value("c8", _SSAType_1)), SSALiteral.value("3", _SSAType_1)),
+                                        SSALiteral.value("b", _SSAType_1),
                                         SSALiteral.value("4", _SSAType_1),
                                     ),
                                     SSALiteral.value("5", _SSAType_1),
