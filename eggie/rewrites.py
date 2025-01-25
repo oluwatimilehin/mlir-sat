@@ -1,5 +1,6 @@
 from __future__ import annotations
 from egglog import *
+
 from eggie.enodes.base import SSA, SSALiteral, SSAType
 from eggie.enodes.arith import Arith
 from eggie.enodes.linalg import Linalg
@@ -30,6 +31,7 @@ def arith_associative(x: SSA, y: SSA, z: SSA, out1: SSA, out2: SSA):
 
 
 @rewrites_ruleset.register
+# x * 1 => x
 def mul_identity(x: SSA, mul_out: SSA, const_out: SSA):
     yield rewrite(
         Arith.muli(x, Arith.constant(1, const_out), mul_out), subsume=True
@@ -37,6 +39,7 @@ def mul_identity(x: SSA, mul_out: SSA, const_out: SSA):
 
 
 @rewrites_ruleset.register
+# x / x => 1
 def arith_divsi_by_self(x: SSA, div_out: SSA):
     yield rewrite(Arith.divsi(x, x, div_out)).to(
         Arith.constant(1, SSALiteral.value(f"mlirsat_const_1", SSAType.integer(32)))
@@ -45,6 +48,7 @@ def arith_divsi_by_self(x: SSA, div_out: SSA):
 
 @rewrites_ruleset.register
 def mul_to_left_shift(op: SSA, const_out: SSA, mul_out: SSA):
+    # x * 2 ^ n => x << n, for n from 1 to 10
     for i in range(1, 10):
         power_of_2 = 2**i
         yield rewrite(
@@ -64,6 +68,7 @@ def mul_to_left_shift(op: SSA, const_out: SSA, mul_out: SSA):
 
 
 @rewrites_ruleset.register
+# For constants x and y, x.z * y => (x * y) * z, where x * y is evaluated at compile time
 def constant_folding(
     x: i64,
     y: i64,
@@ -83,6 +88,7 @@ def constant_folding(
 
 
 @rewrites_ruleset.register
+# x * y => y * x
 def linalg_commutative(x: SSA, y: SSA, out: SSA, return_val: SSA):
     yield rewrite(Linalg.add(x, y, out, return_val)).to(
         Linalg.add(y, x, out, return_val)
@@ -90,6 +96,7 @@ def linalg_commutative(x: SSA, y: SSA, out: SSA, return_val: SSA):
 
 
 @rewrites_ruleset.register
+# xz + yz => z * (x + y)
 def linalg_distributive(
     x: SSA,
     y: SSA,
