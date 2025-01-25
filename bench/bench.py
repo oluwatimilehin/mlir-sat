@@ -350,7 +350,7 @@ def visualize(dir: Path, data: Dict[str, Dict[str, BenchmarkResult]]):
     plt.savefig(f"{dir}/median_latency_speedup.jpg", dpi=300)
     plt.close(fig)
 
-    # --- Num Ops Reduction Plot --- #TODO: reduction plot should use percentages; what it was reduced by what percentage?
+    # --- Num Ops Reduction Plot ---
     fig, ax = plt.subplots(figsize=(10, 6))
     for i, category in enumerate(categories):
         reductions = [
