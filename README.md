@@ -157,7 +157,7 @@ Comparing the MLIRSat-optimized programs with the results from existing MLIR and
   src="median_latency_speedup.jpg"
   alt="Image containing three grouped bars demonstrating the speedup of different optimizations against a baseline with no optimizations"
   style=" height: auto;">
-  <figcaption style="text-align: center;"> <b> Figure 1: </b> Median latency speedup against a baseline with no optimizations for the sample programs. </figcaption>
+  <p style="text-align: center;"> <figcaption> <b> Figure 1: </b> Median latency speedup against a baseline with no optimizations for the sample programs. </figcaption>
 </figure>
 
 <figure style="text-align: center; margin: 5px">
@@ -165,7 +165,7 @@ Comparing the MLIRSat-optimized programs with the results from existing MLIR and
   src="num_ops_reduction.jpg"
   alt="Image containing three grouped bars demonstrating the number of ops reduction of different optimizations against a baseline with no optimizations"
   style=" height: auto;">
-  <figcaption style="text-align: center;"> <b> Figure 2: </b> Reduction in the number of operations against a baseline with no optimizations. </figcaption>
+  <p style="text-align: center;"> <figcaption> <b> Figure 2: </b> Reduction in the number of operations against a baseline with no optimizations. </figcaption> </p>
 </figure>
 
 
